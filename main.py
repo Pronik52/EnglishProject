@@ -7,6 +7,7 @@ import crud
 from database import SessionLocal
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+from auth import get_current_user
 import auth
 
 app = FastAPI()
@@ -56,3 +57,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     # Возвращаем токен в стандартном формате OAuth2.
     return {"access_token": access_token, "token_type": "bearer"}
+
+# Защищённый эндпоинт: вернёт данные ТЕКУЩЕГО пользователя.
+# Depends(get_current_user) = "сюда пускать только с валидным токеном".
+# Если токена нет/он плохой — FastAPI вернёт 401 ещё до тела функции.
+@app.get("/me", response_model=schemas.UserResponse)
+def read_current_user(current_user: models.User = Depends(get_current_user)):
+    # current_user — это объект User, который вернул get_current_user.
+    # response_model=UserResponse гарантирует, что пароль не утечёт в ответ.
+    return current_user
