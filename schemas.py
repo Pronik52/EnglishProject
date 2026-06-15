@@ -20,3 +20,22 @@ class UserResponse(BaseModel):
     # (из модели User), а не только из словаря.
     class Config:
         from_attributes = True
+
+# Входящие данные при создании слова: текст и перевод.
+# owner_id СЮДА НЕ кладём — владельца определим из токена, а не из тела запроса!
+class WordCreate(BaseModel):
+    text: str
+    translation: str
+
+
+# Исходящие данные: что вернём клиенту.
+class WordResponse(BaseModel):
+    id: int
+    text: str
+    translation: str
+    review_count: int
+    owner_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

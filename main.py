@@ -66,3 +66,47 @@ def read_current_user(current_user: models.User = Depends(get_current_user)):
     # current_user — это объект User, который вернул get_current_user.
     # response_model=UserResponse гарантирует, что пароль не утечёт в ответ.
     return current_user
+
+# Создать слово. Защищён токеном. Владелец = текущий пользователь.
+@app.post("/words", response_model=schemas.WordResponse)
+def create_word(
+    word: schemas.WordCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # owner_id берём из токена (current_user.id), а НЕ из тела запроса.
+    return crud.create_word(db, word=word, owner_id=current_user.id)
+
+# Получить список СВОИХ слов.
+@app.get("/words", response_model=list[schemas.WordResponse])
+def read_words(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    return crud.get_words_by_owner(db, owner_id=current_user.id)
+
+
+# Получить одно своё слово по id.
+@app.get("/words/{word_id}", response_model=schemas.WordResponse)
+def read_word(
+    word_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    word = crud.get_word(db, word_id=word_id, owner_id=current_user.id)
+    if word is None:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return word
+
+
+# Удалить своё слово по id.
+@app.delete("/words/{word_id}")
+def remove_word(
+    word_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    ok = crud.delete_word(db, word_id=word_id, owner_id=current_user.id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return {"detail": "Слово удалено"}
