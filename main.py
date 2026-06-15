@@ -5,6 +5,9 @@ import models
 import schemas
 import crud
 from database import SessionLocal
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
+import auth
 
 app = FastAPI()
 
@@ -37,3 +40,19 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     # 2. Создаём пользователя и возвращаем его.
     return crud.create_user(db, user=user)
+
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # OAuth2PasswordRequestForm даёт нам поля username и password из формы.
+    # ВАЖНО: поле называется "username", но мы кладём туда email.
+    user = crud.authenticate_user(db, email=form_data.username, password=form_data.password)
+
+    if not user:
+        # Одна общая ошибка и для "нет юзера", и для "неверный пароль".
+        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+
+    # Создаём токен, кладём в "sub" email пользователя.
+    access_token = auth.create_access_token(data={"sub": user.email})
+
+    # Возвращаем токен в стандартном формате OAuth2.
+    return {"access_token": access_token, "token_type": "bearer"}

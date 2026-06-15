@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
+from auth import verify_password
 
 import models
 import schemas
@@ -39,3 +40,13 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
 
     return db_user
+
+# Проверяет логин: находит юзера по email и сверяет пароль.
+# Возвращает объект User если всё ок, иначе None.
+def authenticate_user(db: Session, email: str, password: str):
+    user = get_user_by_email(db, email)
+    if not user:
+        return None  # нет такого пользователя
+    if not verify_password(password, user.hashed_password):
+        return None  # пароль неверный
+    return user
