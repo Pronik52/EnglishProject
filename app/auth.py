@@ -1,6 +1,5 @@
 import os
 from datetime import datetime, timedelta, timezone
-
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from dotenv import load_dotenv
@@ -8,8 +7,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-import models
+from .database import SessionLocal, get_db
+from . import models
 
 load_dotenv()
 
@@ -57,17 +56,6 @@ def decode_access_token(token: str):
 # Говорим FastAPI, что токен берётся со эндпоинта /login.
 # tokenUrl="login" — для документации и кнопки Authorize в /docs.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-
-# Локальная функция-сессия БД (такая же, как get_db в main.py).
-# Дублируем здесь, чтобы auth.py был самодостаточным.
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 # ГЛАВНАЯ функция этапа.
 # FastAPI сам достанет токен из заголовка Authorization и передаст в token.

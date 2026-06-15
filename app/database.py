@@ -22,3 +22,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base — базовый класс, от которого будут наследоваться ВСЕ наши модели (таблицы).
 # SQLAlchemy через него ведёт реестр всех таблиц.
 Base = declarative_base()
+
+# Единая точка получения сессии БД. Импортируется везде, где нужна база.
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
