@@ -10,3 +10,5 @@ __pycache__/
 
 # Системные файлы
 .DS_Store
+
+alembic.ini

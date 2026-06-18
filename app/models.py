@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -38,6 +37,7 @@ class Word(Base):
     # Само слово на английском и его перевод.
     text = Column(String, nullable=False)
     translation = Column(String, nullable=False)
+    is_learned = Column(Boolean, default=False, nullable=False, server_default="false")
 
     # Сколько раз пользователь повторил слово (для будущей логики обучения).
     review_count = Column(Integer, default=0)

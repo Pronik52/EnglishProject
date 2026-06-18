@@ -26,7 +26,7 @@ class UserResponse(BaseModel):
 class WordCreate(BaseModel):
     text: str
     translation: str
-
+    is_Learned: bool = False
 
 # Исходящие данные: что вернём клиенту.
 class WordResponse(BaseModel):
@@ -34,6 +34,7 @@ class WordResponse(BaseModel):
     text: str
     translation: str
     review_count: int
+    is_Learned: bool
     owner_id: int
     created_at: datetime
 
