@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from .. import models, schemas
 
@@ -16,9 +17,30 @@ def create_word(db: Session, word: schemas.WordCreate, owner_id: int):
     return db_word
 
 
-# Возвращает ВСЕ слова конкретного пользователя.
-def get_words_by_owner(db: Session, owner_id: int):
-    return db.query(models.Word).filter(models.Word.owner_id == owner_id).all()
+# Возвращает слова конкретного пользователя с пагинацией и фильтрацией.
+def get_words_by_owner(
+    db: Session,
+    owner_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None,
+    is_learned: bool = None
+):
+    query = db.query(models.Word).filter(models.Word.owner_id == owner_id)
+
+    if search:
+        query = query.filter(
+            models.Word.text.ilike(f"%{search}%") |
+            models.Word.translation.ilike(f"%{search}%")
+        )
+
+    if is_learned is not None:
+        query = query.filter(models.Word.is_learned == is_learned)
+
+    total = query.count()
+    words = query.offset(skip).limit(limit).all()
+
+    return {"items": words, "total": total}
 
 
 # Возвращает ОДНО слово по id, но только если оно принадлежит этому владельцу.
@@ -38,3 +60,70 @@ def delete_word(db: Session, word_id: int, owner_id: int):
     db.delete(word)
     db.commit()
     return True
+
+import random
+
+# Увеличивает счётчик повторений на 1.
+# Если достигли порога LEARNED_THRESHOLD — автоматически помечает как выученное.
+LEARNED_THRESHOLD = 5  # сколько повторений нужно для автоматического is_learned
+
+def review_word(db: Session, word_id: int, owner_id: int):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return None
+
+    word.review_count += 1
+
+    # Автоматически помечаем выученным, если повторений достаточно.
+    if word.review_count >= LEARNED_THRESHOLD:
+        word.is_learned = True
+
+    db.commit()
+    db.refresh(word)
+    return word
+
+
+# Вручную переключает is_learned (True → False или False → True).
+def toggle_learned(db: Session, word_id: int, owner_id: int, is_learned: bool):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return None
+
+    word.is_learned = is_learned
+    db.commit()
+    db.refresh(word)
+    return word
+
+
+# Возвращает случайное НЕВЫУЧЕННОЕ слово пользователя.
+# Если невыученных нет — возвращает None.
+def get_random_unlearned_word(db: Session, owner_id: int):
+    unlearned = db.query(models.Word).filter(
+        models.Word.owner_id == owner_id,
+        models.Word.is_learned == False
+    ).all()
+
+    if not unlearned:
+        return None
+
+    # random.choice выбирает случайный элемент из списка.
+    return random.choice(unlearned)
+
+
+# Статистика по словам пользователя.
+# Возвращает словарь — его FastAPI отдаст как JSON напрямую.
+def get_words_stats(db: Session, owner_id: int):
+    total = db.query(models.Word).filter(
+        models.Word.owner_id == owner_id
+    ).count()
+
+    learned = db.query(models.Word).filter(
+        models.Word.owner_id == owner_id,
+        models.Word.is_learned == True
+    ).count()
+
+    return {
+        "total": total,
+        "learned": learned,
+        "remaining": total - learned
+    }

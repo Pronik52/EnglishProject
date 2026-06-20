@@ -1,14 +1,23 @@
 # Виртуальное окружение
 venv/
+.venv/
 
 # Кэш Python
 __pycache__/
 *.pyc
+*.py[cod]
+*$py.class
 
 # Переменные окружения (секреты!)
 .env
+.env.*
 
 # Системные файлы
 .DS_Store
 
-alembic.ini
+*.log
+
+# База данных
+*.db
+*.sqlite
+*.sqlite3
