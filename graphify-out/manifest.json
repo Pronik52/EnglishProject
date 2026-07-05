@@ -1,0 +1,182 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1783247683.4865825,
+    "ast_hash": "e51077b6a7f1f67afc748f1a32a1557d",
+    "semantic_hash": "e51077b6a7f1f67afc748f1a32a1557d"
+  },
+  ".claude/settings.local.json": {
+    "mtime": 1783248259.5549302,
+    "ast_hash": "d8d41c3a730122ec75973d60616e3b44",
+    "semantic_hash": "d8d41c3a730122ec75973d60616e3b44"
+  },
+  ".vscode/launch.json": {
+    "mtime": 1783245233.930014,
+    "ast_hash": "a4624c5c414de2b3e847d95c48569147",
+    "semantic_hash": "a4624c5c414de2b3e847d95c48569147"
+  },
+  "app/auth.py": {
+    "mtime": 1783245233.9304113,
+    "ast_hash": "27298e93be8f9b99aec19fadcbdb209d",
+    "semantic_hash": "27298e93be8f9b99aec19fadcbdb209d"
+  },
+  "app/crud/__init__.py": {
+    "mtime": 1783245233.9305093,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "app/crud/users.py": {
+    "mtime": 1783245233.9306147,
+    "ast_hash": "a5bfbaf8a7e409024d95440ba89526c9",
+    "semantic_hash": "a5bfbaf8a7e409024d95440ba89526c9"
+  },
+  "app/crud/words.py": {
+    "mtime": 1783245233.9307094,
+    "ast_hash": "d1ab0d34e19397984241af44f3efae88",
+    "semantic_hash": "d1ab0d34e19397984241af44f3efae88"
+  },
+  "app/database.py": {
+    "mtime": 1783245233.9308066,
+    "ast_hash": "2e6bbb0a7d9d0d8586799603df6404c4",
+    "semantic_hash": "2e6bbb0a7d9d0d8586799603df6404c4"
+  },
+  "app/exceptions.py": {
+    "mtime": 1783245233.930888,
+    "ast_hash": "3bf99a907a6467920e16ba8b7423f866",
+    "semantic_hash": "3bf99a907a6467920e16ba8b7423f866"
+  },
+  "app/main.py": {
+    "mtime": 1783245233.9309835,
+    "ast_hash": "e6a47016e3991017a5b46bd70986e13b",
+    "semantic_hash": "e6a47016e3991017a5b46bd70986e13b"
+  },
+  "app/models.py": {
+    "mtime": 1783245233.9310846,
+    "ast_hash": "3d59d82ba7c1a060a45252f25b7fdfc8",
+    "semantic_hash": "3d59d82ba7c1a060a45252f25b7fdfc8"
+  },
+  "app/routers/__init__.py": {
+    "mtime": 1783245233.931179,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "app/routers/auth.py": {
+    "mtime": 1783245233.9312997,
+    "ast_hash": "a7e61a1286c070069799e4d16ce2c1bd",
+    "semantic_hash": "a7e61a1286c070069799e4d16ce2c1bd"
+  },
+  "app/routers/words.py": {
+    "mtime": 1783245233.9313927,
+    "ast_hash": "52a5deab7fa56323d056ece8f7de27c9",
+    "semantic_hash": "52a5deab7fa56323d056ece8f7de27c9"
+  },
+  "app/schemas.py": {
+    "mtime": 1783245233.9314938,
+    "ast_hash": "f21c55ff4c4843aa341aedde51b41bf0",
+    "semantic_hash": "f21c55ff4c4843aa341aedde51b41bf0"
+  },
+  "migrations/env.py": {
+    "mtime": 1783245233.9350529,
+    "ast_hash": "be89914d9dc6e63467962fca166b075a",
+    "semantic_hash": "be89914d9dc6e63467962fca166b075a"
+  },
+  "migrations/versions/1605fb67e5d5_add_is_learned_to_words.py": {
+    "mtime": 1783245233.9354427,
+    "ast_hash": "7ed854e06bfc669e130c78a0a51b423e",
+    "semantic_hash": "7ed854e06bfc669e130c78a0a51b423e"
+  },
+  "migrations/versions/50c6d8041c3c_initial_users_and_words_tables.py": {
+    "mtime": 1783245233.935528,
+    "ast_hash": "c8899539b7403ae2131502e434989ced",
+    "semantic_hash": "c8899539b7403ae2131502e434989ced"
+  },
+  "tests/__init__.py": {
+    "mtime": 1783245233.9358072,
+    "ast_hash": "0b35a2a1aff7ec4daead4ee9f89caa07",
+    "semantic_hash": "0b35a2a1aff7ec4daead4ee9f89caa07"
+  },
+  "tests/conftest.py": {
+    "mtime": 1783245233.9358897,
+    "ast_hash": "e31a3d899d3e802ee844524403de3546",
+    "semantic_hash": "e31a3d899d3e802ee844524403de3546"
+  },
+  "tests/integration/test_api.py": {
+    "mtime": 1783245233.9360201,
+    "ast_hash": "ec9f025f2f2f82e32e8cf4024c40e965",
+    "semantic_hash": "ec9f025f2f2f82e32e8cf4024c40e965"
+  },
+  "tests/unit/test_auth.py": {
+    "mtime": 1783245233.936132,
+    "ast_hash": "aea1e50b2ca372c4d43190d793da2d30",
+    "semantic_hash": "aea1e50b2ca372c4d43190d793da2d30"
+  },
+  "tests/unit/test_crud_words.py": {
+    "mtime": 1783245233.9362087,
+    "ast_hash": "cefccc4a9afcf63756424c6ad8da3431",
+    "semantic_hash": "cefccc4a9afcf63756424c6ad8da3431"
+  },
+  ".claude/CLAUDE.md": {
+    "mtime": 1783247683.4858572,
+    "ast_hash": "9b31786b637be3c13978bec4c2330752",
+    "semantic_hash": "9b31786b637be3c13978bec4c2330752"
+  },
+  ".claude/skills/graphify/SKILL.md": {
+    "mtime": 1783247683.4856083,
+    "ast_hash": "1e48e0226c5b26741c54209a51c94454",
+    "semantic_hash": "1e48e0226c5b26741c54209a51c94454"
+  },
+  ".claude/skills/graphify/references/add-watch.md": {
+    "mtime": 1783247623.6628942,
+    "ast_hash": "d59d027fe449f06aa03905a01184e779",
+    "semantic_hash": "d59d027fe449f06aa03905a01184e779"
+  },
+  ".claude/skills/graphify/references/exports.md": {
+    "mtime": 1783247623.6629684,
+    "ast_hash": "9da2a2152e60a22f07f05fed5158f287",
+    "semantic_hash": "9da2a2152e60a22f07f05fed5158f287"
+  },
+  ".claude/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1783247623.663055,
+    "ast_hash": "42fef56a01698118f7fd722acdadea34",
+    "semantic_hash": "42fef56a01698118f7fd722acdadea34"
+  },
+  ".claude/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1783247623.6631327,
+    "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
+    "semantic_hash": "cde13df085e4c492aeb7ba298a996d0d"
+  },
+  ".claude/skills/graphify/references/hooks.md": {
+    "mtime": 1783247623.663203,
+    "ast_hash": "3f545db6ce646650bb9de588f5512a27",
+    "semantic_hash": "3f545db6ce646650bb9de588f5512a27"
+  },
+  ".claude/skills/graphify/references/query.md": {
+    "mtime": 1783247623.665248,
+    "ast_hash": "3c46f8ad006874260614ed8657d02307",
+    "semantic_hash": "3c46f8ad006874260614ed8657d02307"
+  },
+  ".claude/skills/graphify/references/transcribe.md": {
+    "mtime": 1783247623.6653953,
+    "ast_hash": "67b6a5fa6c0974e18f60db9f8932fbd8",
+    "semantic_hash": "67b6a5fa6c0974e18f60db9f8932fbd8"
+  },
+  ".claude/skills/graphify/references/update.md": {
+    "mtime": 1783247623.665486,
+    "ast_hash": "c698309979460d0f02ba616417844399",
+    "semantic_hash": "c698309979460d0f02ba616417844399"
+  },
+  "CLAUDE.md": {
+    "mtime": 1783247683.4863765,
+    "ast_hash": "e1a0478f962f993cd6bac8d4bf4ccc35",
+    "semantic_hash": "e1a0478f962f993cd6bac8d4bf4ccc35"
+  },
+  "requirements-dev.txt": {
+    "mtime": 1783245233.935602,
+    "ast_hash": "bee0387e8987138d46d387d694a962c7",
+    "semantic_hash": "bee0387e8987138d46d387d694a962c7"
+  },
+  "requirements.txt": {
+    "mtime": 1783245233.935679,
+    "ast_hash": "04fe8d34ff243e55a385caee6a119512",
+    "semantic_hash": "04fe8d34ff243e55a385caee6a119512"
+  }
+}

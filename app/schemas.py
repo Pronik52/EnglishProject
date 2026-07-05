@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, EmailStr, validator, constr
 from datetime import datetime
 
@@ -46,17 +46,11 @@ class WordCreate(BaseModel):
         return v.strip()
 
 # Исходящие данные: что вернём клиенту.
-class PaginatedWordResponse(BaseModel):
-    items: List[WordResponse]
-    total: int
-    page: int
-    size: int
-    pages: int
-
 class WordResponse(BaseModel):
     id: int
     text: str
     translation: str
+    phrase: Optional[str] = None
     review_count: int
     is_learned: bool
     owner_id: int
@@ -65,7 +59,31 @@ class WordResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class PaginatedWordResponse(BaseModel):
+    items: List[WordResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
+
 # Тело запроса для ручной установки is_learned.
 # Только одно поле — больше ничего менять не разрешаем.
 class WordLearnedUpdate(BaseModel):
     is_learned: bool
+
+
+# Ответ в викторине: правильно ли пользователь выбрал слово.
+class AnswerRequest(BaseModel):
+    correct: bool
+
+
+# Запрос предпросмотра фраз для слова (ещё не сохранённого).
+class PhrasePreviewRequest(BaseModel):
+    text: constr(min_length=1, max_length=100)
+    translation: Optional[str] = None
+
+
+# Ответ с вариантами фраз.
+class PhrasePreviewResponse(BaseModel):
+    text: str
+    phrases: List[str]

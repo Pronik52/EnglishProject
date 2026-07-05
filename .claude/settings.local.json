@@ -2,7 +2,38 @@
   "permissions": {
     "allow": [
       "Bash(pip show *)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(graphify export *)",
+      "Bash(python3 -c \"import socket; s=socket.socket\\(\\); s.settimeout\\(1\\); print\\('PG 5432:', 'OPEN' if s.connect_ex\\(\\('localhost',5432\\)\\)==0 else 'CLOSED'\\)\")",
+      "Bash(python3 -c \"import uvicorn,sqlalchemy,jose,passlib,psycopg2,dotenv,pydantic; print\\('all core deps OK'\\)\")",
+      "Bash(python3 -c \"import anthropic; print\\('anthropic', anthropic.__version__\\)\")",
+      "Bash(python3 -c \"import os; print\\('KEY set' if os.getenv\\('ANTHROPIC_API_KEY'\\) else 'no key'\\)\")",
+      "Bash(DATABASE_URL=\"sqlite:///./english_local.db\" python3 -c \"from app.main import app; print\\('импорт OK, роутов:', len\\(app.routes\\)\\)\")",
+      "Bash(python3 -m pip install --user \"pydantic[email]\")",
+      "Bash(python3 -m pip install --user python-multipart httpx)",
+      "Bash(DATABASE_URL=\"sqlite:///./english_local.db\" python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000/)",
+      "Bash(break)",
+      "Bash(python3 -m pip install --user \"bcrypt<4.1\")",
+      "Bash(pkill -f \"uvicorn app.main\")",
+      "Bash(DATABASE_URL=\"sqlite:///./english_local.db\" nohup python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000)",
+      "Bash(echo \"pid $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000/api/v1/../)",
+      "Bash(python3 -m pytest -q)",
+      "Bash(python3 -m pip install --user pytest)",
+      "Bash(python3 -m pytest tests/unit/test_crud_words.py -q)",
+      "Bash(python3 -m pytest tests/unit/test_crud_words.py::test_review_word -q)",
+      "Bash(grep -iA6 \"integrityerror\\\\|unique\\\\|null\\\\|constraint\")",
+      "Bash(python3 -m pytest tests/unit/test_crud_words.py::test_review_word)",
+      "Bash(curl -s http://127.0.0.1:8000/app/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" http://127.0.0.1:8000/)",
+      "Bash(python3 -)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -d 'username=demo@test.com&password=Secret123' -o /dev/null -w '  HTTP %{http_code}\\\\n')",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -d 'username=demo@test.com&password=wrong')",
+      "Bash(python3 -c \"import re;h=open\\('/Users/nikita/EnglishProject/frontend/index.html'\\).read\\(\\);open\\('c.js','w'\\).write\\(re.search\\(r'<script>\\(.*\\)</script>',h,re.S\\).group\\(1\\)\\)\")",
+      "Bash(node --check c.js)"
     ]
   }
 }

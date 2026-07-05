@@ -37,6 +37,11 @@ class Word(Base):
     # Само слово на английском и его перевод.
     text = Column(String, nullable=False)
     translation = Column(String, nullable=False)
+
+    # Короткая фраза с этим словом — её генерирует бэкенд, чтобы слово
+    # запоминалось в контексте, а не изолированно.
+    phrase = Column(String, nullable=True)
+
     is_learned = Column(Boolean, default=False, nullable=False, server_default="false")
 
     # Сколько раз пользователь повторил слово (для будущей логики обучения).

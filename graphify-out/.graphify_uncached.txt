@@ -1,3 +1,0 @@
-/mnt/c/EnglishProject/CLAUDE.md
-/mnt/c/EnglishProject/requirements-dev.txt
-/mnt/c/EnglishProject/requirements.txt

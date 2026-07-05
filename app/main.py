@@ -1,10 +1,13 @@
 import logging
+import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi import APIRouter
 from .routers import auth as auth_router, words as words_router
 from .exceptions import validation_exception_handler, http_exception_handler
+from .database import Base, engine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,6 +20,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="English Learning API")
+
+# Создаём таблицы, которых ещё нет — только для SQLite (локальный запуск/демо),
+# чтобы стартовать без миграций. На PostgreSQL схемой управляет Alembic, а
+# подключение к нему при импорте здесь не нужно (иначе ломается сбор тестов).
+if engine.dialect.name == "sqlite":
+    Base.metadata.create_all(bind=engine)
 
 # Глобальный обработчик ошибок
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
@@ -51,9 +60,16 @@ app.include_router(api_router)
 
 from fastapi.responses import RedirectResponse
 
+# Отдаём минимальный фронтенд (SPA в одном файле) по адресу /app.
+_FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.isdir(_FRONTEND_DIR):
+    app.mount("/app", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
+
+
 @app.get("/")
 def root():
-    return {"message": "English Learning API работает"}
+    # С корня отправляем пользователя сразу в веб-интерфейс.
+    return RedirectResponse(url="/app/")
 
 # Редиректы для обратной совместимости
 @app.post("/login")

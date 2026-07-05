@@ -5,8 +5,22 @@ from ..database import get_db
 from .. import schemas, models
 from ..crud import words as crud_words
 from ..auth import get_current_user
+from ..phrases import generate_variants
 
 router = APIRouter(prefix="/words", tags=["words"])
+
+
+# Предпросмотр фраз для слова, которое пользователь ещё не сохранил.
+# Статический маршрут — держим ДО /{word_id}.
+@router.post("/preview-phrase", response_model=schemas.PhrasePreviewResponse)
+def preview_phrase(
+    payload: schemas.PhrasePreviewRequest,
+    current_user: models.User = Depends(get_current_user)
+):
+    return {
+        "text": payload.text,
+        "phrases": generate_variants(payload.text, payload.translation, count=3)
+    }
 
 
 @router.post("", response_model=schemas.WordResponse)
@@ -81,6 +95,48 @@ def review_word(
     current_user: models.User = Depends(get_current_user)
 ):
     word = crud_words.review_word(db, word_id=word_id, owner_id=current_user.id)
+    if word is None:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return word
+
+
+# Сгенерировать другую фразу для уже сохранённого слова.
+@router.patch("/{word_id}/regenerate-phrase", response_model=schemas.WordResponse)
+def regenerate_phrase(
+    word_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    word = crud_words.regenerate_phrase(db, word_id=word_id, owner_id=current_user.id)
+    if word is None:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return word
+
+
+# Ответ в викторине: +1 при верном выборе слова, −1 при ошибке.
+@router.patch("/{word_id}/answer", response_model=schemas.WordResponse)
+def answer_word(
+    word_id: int,
+    payload: schemas.AnswerRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    word = crud_words.answer_word(
+        db, word_id=word_id, owner_id=current_user.id, correct=payload.correct
+    )
+    if word is None:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return word
+
+
+# Сбросить прогресс повторений по слову (счётчик → 0, снять "выучено").
+@router.patch("/{word_id}/reset", response_model=schemas.WordResponse)
+def reset_word_reviews(
+    word_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    word = crud_words.reset_reviews(db, word_id=word_id, owner_id=current_user.id)
     if word is None:
         raise HTTPException(status_code=404, detail="Слово не найдено")
     return word

@@ -42,3 +42,13 @@ Requires a `.env` file (not committed) with `DATABASE_URL`, `SECRET_KEY`, `ALGOR
 - `tests/conftest.py` overrides the `get_db` dependency with a shared in-memory SQLite engine (via `StaticPool` so all connections see the same DB) and provides `client`, `db_session`, `test_user`, and `test_word` fixtures.
 - `tests/unit/` tests CRUD functions directly; `tests/integration/test_api.py` drives full request/response flows through the `TestClient`.
 - The `test_user` fixture's password hash corresponds to plaintext `"secret"` — use that when logging in through the API in a test rather than the CRUD layer.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

@@ -2,19 +2,38 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from .. import models, schemas
+from ..phrases import generate_phrase, generate_variants
 
 # Создаёт слово для конкретного владельца.
 # owner_id передаём отдельно — он берётся из токена, а не из схемы.
+# Бэкенд сразу генерирует короткую фразу с этим словом для запоминания.
 def create_word(db: Session, word: schemas.WordCreate, owner_id: int):
     db_word = models.Word(
         text=word.text,
         translation=word.translation,
+        phrase=generate_phrase(word.text, word.translation),
         owner_id=owner_id
     )
     db.add(db_word)
     db.commit()
     db.refresh(db_word)
     return db_word
+
+
+# Генерирует новую фразу для существующего слова (кнопка "другая фраза").
+def regenerate_phrase(db: Session, word_id: int, owner_id: int):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return None
+
+    # Выбираем вариант, отличающийся от текущего, если это возможно.
+    variants = generate_variants(word.text, word.translation, count=3)
+    new_phrase = next((v for v in variants if v != word.phrase), variants[0])
+
+    word.phrase = new_phrase
+    db.commit()
+    db.refresh(word)
+    return word
 
 
 # Возвращает слова конкретного пользователя с пагинацией и фильтрацией.
@@ -78,6 +97,40 @@ def review_word(db: Session, word_id: int, owner_id: int):
     if word.review_count >= LEARNED_THRESHOLD:
         word.is_learned = True
 
+    db.commit()
+    db.refresh(word)
+    return word
+
+
+# Ответ в режиме викторины: correct=True → +1 повторение (как review),
+# correct=False → −1 (не ниже нуля). Счётчик управляет автоотметкой "выучено".
+def answer_word(db: Session, word_id: int, owner_id: int, correct: bool):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return None
+
+    if correct:
+        word.review_count += 1
+    else:
+        word.review_count = max(0, word.review_count - 1)
+
+    # Синхронизируем "выучено" со счётчиком повторений.
+    word.is_learned = word.review_count >= LEARNED_THRESHOLD
+
+    db.commit()
+    db.refresh(word)
+    return word
+
+
+# Сбрасывает прогресс по слову: обнуляет счётчик повторений и снимает
+# отметку "выучено", чтобы учить слово заново с нуля.
+def reset_reviews(db: Session, word_id: int, owner_id: int):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return None
+
+    word.review_count = 0
+    word.is_learned = False
     db.commit()
     db.refresh(word)
     return word
