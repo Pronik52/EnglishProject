@@ -21,6 +21,10 @@ class User(Base):
     # (хеширование настроим на следующем этапе, пока просто поле)
     hashed_password = Column(String, nullable=False)
 
+    # Уровень владения языком (CEFR): A1, A2, B1, B2, C1.
+    # По нему генератор подбирает фразы нужной сложности.
+    level = Column(String, nullable=False, default="A1", server_default="A1")
+
     # created_at — дата регистрации. server_default=func.now() значит:
     # при создании записи база сама подставит текущее время.
     created_at = Column(DateTime(timezone=True), server_default=func.now())

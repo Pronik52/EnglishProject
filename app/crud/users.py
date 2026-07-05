@@ -30,6 +30,14 @@ def create_user(db: Session, user: schemas.UserCreate):
 
     return db_user
 
+# Меняет уровень пользователя (A1..C1) и сохраняет в базу.
+def update_level(db: Session, user: models.User, level: str):
+    user.level = level
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 # Проверяет логин: находит юзера по email и сверяет пароль.
 # Возвращает объект User если всё ок, иначе None.
 def authenticate_user(db: Session, email: str, password: str):

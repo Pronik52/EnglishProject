@@ -16,56 +16,128 @@ import random
 from typing import List, Optional
 
 
-# --- Шаблоны по частям речи. {w} — место для слова. ---
-# Существительное — слово обозначает предмет.
-_NOUN = [
-    "Can you pass me the {w}, please?",
-    "I bought a new {w} yesterday.",
-    "Where did you put the {w}?",
-    "This {w} is exactly what I needed.",
-    "She showed me her favourite {w}.",
-    "We talked about the {w} for hours.",
-    "He forgot his {w} at home.",
-    "That {w} looks really expensive.",
-]
+# --- Шаблоны по уровню сложности и части речи. {w} — место для слова. ---
+# Уровни CEFR сгруппированы в три набора: simple (A1/A2), medium (B1/B2),
+# advanced (C1). Для A1 фразы максимально короткие и из простых слов.
+_LEVEL_TIER = {"A1": "simple", "A2": "simple", "B1": "medium", "B2": "medium", "C1": "advanced"}
 
-# Глагол — слово обозначает действие (берём базовую форму: to {w}).
-_VERB = [
-    "I want to {w} every day.",
-    "They like to {w} together.",
-    "Let's {w} before it gets dark.",
-    "Do you know how to {w}?",
-    "We should {w} more often.",
-    "She taught me how to {w}.",
-    "It's hard to {w} when you're tired.",
-    "He promised to {w} tomorrow.",
-]
+# Простой набор (A1/A2): короткие фразы из базовой лексики.
+_SIMPLE = {
+    "noun": [
+        "I see a {w}.",
+        "This is my {w}.",
+        "I have a {w}.",
+        "Look at the {w}!",
+        "I like this {w}.",
+        "It is a big {w}.",
+    ],
+    "verb": [
+        "I like to {w}.",
+        "Let's {w} now.",
+        "I can {w}.",
+        "We {w} every day.",
+        "Do you {w}?",
+        "I want to {w}.",
+    ],
+    "adj": [
+        "It is the {w} one.",
+        "I want the {w} one.",
+        "The {w} one is here.",
+        "Give me the {w} box.",
+        "This is the {w} part.",
+        "I like the {w} car.",
+    ],
+    "adv": [
+        "He runs {w}.",
+        "She sings {w}.",
+        "Do it {w}.",
+        "They walk {w}.",
+        "We work {w}.",
+        "I eat {w}.",
+    ],
+}
 
-# Прилагательное — слово описывает признак.
-_ADJ = [
-    "The weather is very {w} today.",
-    "That was a really {w} movie.",
-    "This is such a {w} idea.",
-    "He seems quite {w} lately.",
-    "Everyone said the food was {w}.",
-    "Her new house is surprisingly {w}.",
-    "I've never met anyone so {w}.",
-    "The results were more {w} than expected.",
-]
+# Средний набор (B1/B2): обычные бытовые фразы.
+_MEDIUM = {
+    "noun": [
+        "Can you pass me the {w}, please?",
+        "I bought a new {w} yesterday.",
+        "Where did you put the {w}?",
+        "This {w} is exactly what I needed.",
+        "She showed me her favourite {w}.",
+        "We talked about the {w} for hours.",
+        "He forgot his {w} at home.",
+        "That {w} looks really expensive.",
+    ],
+    "verb": [
+        "I want to {w} every day.",
+        "They like to {w} together.",
+        "Let's {w} before it gets dark.",
+        "Do you know how to {w}?",
+        "We should {w} more often.",
+        "She taught me how to {w}.",
+        "It's hard to {w} when you're tired.",
+        "He promised to {w} tomorrow.",
+    ],
+    "adj": [
+        "The {w} one is over there.",
+        "She always picks the {w} option.",
+        "I noticed the {w} part immediately.",
+        "They chose the {w} route in the end.",
+        "Everyone remembered the {w} scene.",
+        "The {w} chapter was my favourite.",
+        "I couldn't find the {w} page.",
+        "He kept the {w} letter for years.",
+    ],
+    "adv": [
+        "She finished the work {w}.",
+        "He spoke to us very {w}.",
+        "Please drive {w} on this road.",
+        "They answered all the questions {w}.",
+        "The team handled it {w}.",
+        "You did that remarkably {w}.",
+        "Everything went {w} in the end.",
+        "He always explains things {w}.",
+    ],
+}
 
-# Наречие — слово описывает, как совершается действие.
-_ADV = [
-    "She finished the work {w}.",
-    "He spoke to us very {w}.",
-    "Please drive {w} on this road.",
-    "They answered all the questions {w}.",
-    "The team handled it {w}.",
-    "You did that remarkably {w}.",
-    "Everything went {w} in the end.",
-    "He always explains things {w}.",
-]
+# Сложный набор (C1): длиннее, богаче лексика и структура.
+_ADVANCED = {
+    "noun": [
+        "The committee spent weeks debating the future of the {w}.",
+        "Her research shed new light on the origins of the {w}.",
+        "Few people appreciate just how complex a {w} can be.",
+        "The article examines the {w} from several angles.",
+        "They reached no agreement about the {w} despite lengthy talks.",
+        "The {w} proved far more significant than anyone had expected.",
+    ],
+    "verb": [
+        "It would be unwise to {w} without weighing the consequences.",
+        "They were reluctant to {w} until all the facts emerged.",
+        "Under such circumstances, few would dare to {w}.",
+        "The report urges policymakers to {w} without delay.",
+        "She managed to {w} despite considerable opposition.",
+        "There is little incentive to {w} in the current climate.",
+    ],
+    "adj": [
+        "The committee eventually settled on the {w} option.",
+        "Critics singled out the {w} scene for particular praise.",
+        "Her analysis centred on the {w} case.",
+        "The {w} proposal generated considerable debate.",
+        "They dismissed the {w} approach without much discussion.",
+        "The {w} chapter proved the most memorable.",
+    ],
+    "adv": [
+        "The negotiations proceeded {w} despite the underlying tension.",
+        "She responded {w}, choosing each word with care.",
+        "The system handled the surge of requests {w}.",
+        "He defended his thesis {w} before the committee.",
+        "Events unfolded {w}, leaving little time to react.",
+        "The team executed the plan {w} and without hesitation.",
+    ],
+}
 
-_TEMPLATES = {"noun": _NOUN, "verb": _VERB, "adj": _ADJ, "adv": _ADV}
+_TIERS = {"simple": _SIMPLE, "medium": _MEDIUM, "advanced": _ADVANCED}
 
 
 def _first_ru_word(translation: str) -> str:
@@ -121,20 +193,22 @@ def _classify(word: str, translation: Optional[str]) -> str:
     )
 
 
-def generate_variants(word: str, translation: Optional[str] = None, count: int = 3) -> List[str]:
-    """Несколько разных фраз, подходящих слову по смыслу.
+def generate_variants(word: str, translation: Optional[str] = None,
+                      level: str = "A1", count: int = 3) -> List[str]:
+    """Несколько разных фраз, подходящих слову по смыслу и уровню сложности.
 
-    Детерминированный seed от слова: одно слово даёт стабильный набор фраз,
-    но у разных слов наборы различаются.
+    Детерминированный seed от слова и уровня: одно слово на одном уровне даёт
+    стабильный набор фраз, но у разных слов/уровней наборы различаются.
     """
+    tier = _LEVEL_TIER.get((level or "A1").upper(), "simple")
     pos = _classify(word, translation)
-    templates = _TEMPLATES[pos]
+    templates = _TIERS[tier][pos]
     count = max(1, min(count, len(templates)))
-    rnd = random.Random(word.lower())
+    rnd = random.Random(f"{word.lower()}|{tier}")
     chosen = rnd.sample(templates, count)
     return [t.format(w=word.strip()) for t in chosen]
 
 
-def generate_phrase(word: str, translation: Optional[str] = None) -> str:
-    """Одна короткая фраза, подходящая слову по смыслу."""
-    return generate_variants(word, translation, count=1)[0]
+def generate_phrase(word: str, translation: Optional[str] = None, level: str = "A1") -> str:
+    """Одна фраза, подходящая слову по смыслу и уровню сложности."""
+    return generate_variants(word, translation, level=level, count=1)[0]

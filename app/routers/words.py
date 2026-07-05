@@ -19,7 +19,7 @@ def preview_phrase(
 ):
     return {
         "text": payload.text,
-        "phrases": generate_variants(payload.text, payload.translation, count=3)
+        "phrases": generate_variants(payload.text, payload.translation, level=current_user.level, count=3)
     }
 
 
@@ -29,7 +29,7 @@ def create_word(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    return crud_words.create_word(db, word=word, owner_id=current_user.id)
+    return crud_words.create_word(db, word=word, owner_id=current_user.id, level=current_user.level)
 
 
 @router.get("", response_model=schemas.PaginatedWordResponse)
@@ -107,7 +107,7 @@ def regenerate_phrase(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    word = crud_words.regenerate_phrase(db, word_id=word_id, owner_id=current_user.id)
+    word = crud_words.regenerate_phrase(db, word_id=word_id, owner_id=current_user.id, level=current_user.level)
     if word is None:
         raise HTTPException(status_code=404, detail="Слово не найдено")
     return word

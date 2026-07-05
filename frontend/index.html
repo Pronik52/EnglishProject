@@ -26,6 +26,11 @@
     background:linear-gradient(135deg,var(--accent),var(--accent2));
     display:grid;place-items:center;font-size:20px;box-shadow:var(--shadow)}
   .muted{color:var(--muted)}
+  .head-right{display:flex; align-items:center; gap:12px}
+  .levelbox{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
+  .levelbox select{background:var(--card2); border:1px solid var(--line); color:var(--text);
+    padding:8px 10px; border-radius:10px; font:inherit; font-size:14px; outline:none; cursor:pointer}
+  .levelbox select:focus{border-color:var(--accent)}
   button{font:inherit; cursor:pointer; border:none; border-radius:11px; transition:.15s}
   button:active{transform:translateY(1px)}
   .btn{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; padding:11px 18px; font-weight:700}
@@ -111,7 +116,18 @@
 <div class="wrap">
   <header class="top">
     <div class="brand"><div class="logo">📚</div> PhraseLearn</div>
-    <button id="logoutBtn" class="btn ghost sm hidden">Выйти</button>
+    <div class="head-right">
+      <label id="levelBox" class="levelbox hidden">Уровень
+        <select id="levelSel">
+          <option value="A1">A1 · начинающий</option>
+          <option value="A2">A2 · элементарный</option>
+          <option value="B1">B1 · средний</option>
+          <option value="B2">B2 · выше среднего</option>
+          <option value="C1">C1 · продвинутый</option>
+        </select>
+      </label>
+      <button id="logoutBtn" class="btn ghost sm hidden">Выйти</button>
+    </div>
   </header>
 
   <!-- ЭКРАН АВТОРИЗАЦИИ -->
@@ -229,14 +245,27 @@ function logout(){
   token=null; localStorage.removeItem("token");
   $("#appView").classList.add("hidden"); $("#authView").classList.remove("hidden");
   $("#logoutBtn").classList.add("hidden");
+  $("#levelBox").classList.add("hidden");
 }
 $("#logoutBtn").onclick=logout;
+
+/* Смена уровня: новые фразы (при добавлении/регенерации/предпросмотре) станут
+   проще или сложнее. Уже сохранённые фразы не меняются. */
+$("#levelSel").onchange = async ()=>{
+  try{
+    await api("/auth/level",{method:"PATCH",body:{level:$("#levelSel").value}});
+    toast("Уровень: "+$("#levelSel").value);
+    if($("#wText").value.trim()) schedulePreview();
+  }catch(e){ toast(e.message); }
+};
 
 /* ---------- Основной экран ---------- */
 async function enterApp(){
   $("#authView").classList.add("hidden");
   $("#appView").classList.remove("hidden");
   $("#logoutBtn").classList.remove("hidden");
+  try{ const me=await api("/auth/me"); $("#levelSel").value=me.level; }catch(e){}
+  $("#levelBox").classList.remove("hidden");
   await refresh();
 }
 

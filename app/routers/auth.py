@@ -33,3 +33,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.get("/me", response_model=schemas.UserResponse)
 def read_current_user(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
+
+
+@router.patch("/level", response_model=schemas.UserResponse)
+def update_level(
+    payload: schemas.LevelUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return crud_users.update_level(db, user=current_user, level=payload.level)

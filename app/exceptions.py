@@ -14,7 +14,9 @@ async def validation_exception_handler(request, exc: RequestValidationError):
             "error": {
                 "code": "validation_error",
                 "message": "Ошибка валидации данных",
-                "details": exc.errors()
+                # jsonable_encoder безопасно приводит детали к JSON: в Pydantic v2
+                # errors() кладёт в ctx объект исключения, несериализуемый напрямую.
+                "details": jsonable_encoder(exc.errors())
             }
         },
     )

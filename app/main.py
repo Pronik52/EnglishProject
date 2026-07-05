@@ -27,6 +27,14 @@ app = FastAPI(title="English Learning API")
 if engine.dialect.name == "sqlite":
     Base.metadata.create_all(bind=engine)
 
+    # create_all не добавляет новые колонки в уже существующие таблицы,
+    # поэтому для локальной SQLite-базы дозагружаем недостающие вручную.
+    from sqlalchemy import text, inspect
+    _cols = {c["name"] for c in inspect(engine).get_columns("users")}
+    if "level" not in _cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN level VARCHAR NOT NULL DEFAULT 'A1'"))
+
 # Глобальный обработчик ошибок
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)

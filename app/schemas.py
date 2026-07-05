@@ -22,15 +22,32 @@ class UserCreate(BaseModel):
 
 # Схема ИСХОДЯЩИХ данных — что мы вернём клиенту после регистрации.
 # ВАЖНО: пароль/хеш сюда НЕ включаем — клиенту его знать не нужно.
+# Допустимые уровни CEFR.
+LEVELS = ("A1", "A2", "B1", "B2", "C1")
+
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+    level: str
     created_at: datetime
 
     # Этот блок разрешает Pydantic читать данные напрямую из объекта SQLAlchemy
     # (из модели User), а не только из словаря.
     class Config:
         from_attributes = True
+
+
+# Смена уровня пользователя.
+class LevelUpdate(BaseModel):
+    level: str
+
+    @validator('level')
+    def validate_level(cls, v):
+        v = v.strip().upper()
+        if v not in LEVELS:
+            raise ValueError(f"Уровень должен быть одним из: {', '.join(LEVELS)}")
+        return v
 
 # Входящие данные при создании слова: текст и перевод.
 # owner_id СЮДА НЕ кладём — владельца определим из токена, а не из тела запроса!

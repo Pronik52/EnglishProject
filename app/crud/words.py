@@ -7,11 +7,11 @@ from ..phrases import generate_phrase, generate_variants
 # Создаёт слово для конкретного владельца.
 # owner_id передаём отдельно — он берётся из токена, а не из схемы.
 # Бэкенд сразу генерирует короткую фразу с этим словом для запоминания.
-def create_word(db: Session, word: schemas.WordCreate, owner_id: int):
+def create_word(db: Session, word: schemas.WordCreate, owner_id: int, level: str = "A1"):
     db_word = models.Word(
         text=word.text,
         translation=word.translation,
-        phrase=generate_phrase(word.text, word.translation),
+        phrase=generate_phrase(word.text, word.translation, level=level),
         owner_id=owner_id
     )
     db.add(db_word)
@@ -21,13 +21,13 @@ def create_word(db: Session, word: schemas.WordCreate, owner_id: int):
 
 
 # Генерирует новую фразу для существующего слова (кнопка "другая фраза").
-def regenerate_phrase(db: Session, word_id: int, owner_id: int):
+def regenerate_phrase(db: Session, word_id: int, owner_id: int, level: str = "A1"):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
         return None
 
     # Выбираем вариант, отличающийся от текущего, если это возможно.
-    variants = generate_variants(word.text, word.translation, count=3)
+    variants = generate_variants(word.text, word.translation, level=level, count=3)
     new_phrase = next((v for v in variants if v != word.phrase), variants[0])
 
     word.phrase = new_phrase
