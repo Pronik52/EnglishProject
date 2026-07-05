@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import APIRouter
-from .routers import auth as auth_router, words as words_router
+from .routers import auth as auth_router, words as words_router, billing as billing_router
 from .exceptions import validation_exception_handler, http_exception_handler
 from .database import Base, engine
 
@@ -34,6 +34,9 @@ if engine.dialect.name == "sqlite":
     if "level" not in _cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN level VARCHAR NOT NULL DEFAULT 'A1'"))
+    if "is_premium" not in _cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_premium BOOLEAN NOT NULL DEFAULT 0"))
 
 # Глобальный обработчик ошибок
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
@@ -63,6 +66,7 @@ async def log_requests(request: Request, call_next):
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router.router, prefix="/auth")
 api_router.include_router(words_router.router)
+api_router.include_router(billing_router.router)
 
 app.include_router(api_router)
 

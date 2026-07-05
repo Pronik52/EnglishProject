@@ -1,8 +1,21 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from .. import models, schemas
 from ..phrases import generate_phrase, generate_variants
+
+# Сколько слов в сутки можно добавить на бесплатном тарифе. Premium — без лимита.
+FREE_DAILY_WORD_LIMIT = 10
+
+
+# Сколько слов пользователь добавил за текущие сутки (UTC).
+def count_words_created_today(db: Session, owner_id: int) -> int:
+    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return db.query(models.Word).filter(
+        models.Word.owner_id == owner_id,
+        models.Word.created_at >= start
+    ).count()
 
 # Создаёт слово для конкретного владельца.
 # owner_id передаём отдельно — он берётся из токена, а не из схемы.

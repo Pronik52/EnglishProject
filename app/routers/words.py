@@ -29,6 +29,16 @@ def create_word(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    # Бесплатный тариф: не больше FREE_DAILY_WORD_LIMIT новых слов в сутки.
+    if not current_user.is_premium:
+        used = crud_words.count_words_created_today(db, current_user.id)
+        if used >= crud_words.FREE_DAILY_WORD_LIMIT:
+            raise HTTPException(
+                status_code=402,
+                detail=(f"Дневной лимит бесплатного тарифа исчерпан "
+                        f"({crud_words.FREE_DAILY_WORD_LIMIT} слов в день). "
+                        f"Оформите Premium для безлимита.")
+            )
     return crud_words.create_word(db, word=word, owner_id=current_user.id, level=current_user.level)
 
 

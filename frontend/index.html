@@ -27,6 +27,18 @@
     display:grid;place-items:center;font-size:20px;box-shadow:var(--shadow)}
   .muted{color:var(--muted)}
   .head-right{display:flex; align-items:center; gap:12px}
+  .pill{background:var(--card2); border:1px solid var(--line); color:var(--text); padding:8px 14px; border-radius:20px; font-weight:700; font-size:13px}
+  .pill:hover{border-color:var(--accent)}
+  .pill.premium{background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#fff}
+  .modal-bg{position:fixed; inset:0; background:rgba(6,8,18,.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--card); border:1px solid var(--line); border-radius:18px; max-width:440px; width:100%; padding:26px; box-shadow:var(--shadow)}
+  .modal h2{margin:0 0 4px; font-size:22px}
+  .modal .price{font-size:14px; color:var(--muted); margin-bottom:18px}
+  .modal ul{list-style:none; padding:0; margin:0 0 22px}
+  .modal li{padding:9px 0; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:baseline; font-size:15px}
+  .modal li .soon{margin-left:auto; font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:2px 8px; white-space:nowrap}
+  .modal .note{font-size:12px; color:var(--muted); margin-top:14px; text-align:center}
   .levelbox{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
   .levelbox select{background:var(--card2); border:1px solid var(--line); color:var(--text);
     padding:8px 10px; border-radius:10px; font:inherit; font-size:14px; outline:none; cursor:pointer}
@@ -117,6 +129,7 @@
   <header class="top">
     <div class="brand"><div class="logo">📚</div> PhraseLearn</div>
     <div class="head-right">
+      <button id="planPill" class="pill hidden">Free</button>
       <label id="levelBox" class="levelbox hidden">Уровень
         <select id="levelSel">
           <option value="A1">A1 · начинающий</option>
@@ -187,6 +200,11 @@
   </section>
 </div>
 
+<!-- Модальное окно Premium -->
+<div class="modal-bg" id="premiumModal">
+  <div class="modal" id="premiumBody"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -208,9 +226,11 @@ async function api(path, {method="GET", body=null, form=false, auth=false}={}){
   if(!res.ok){
     // 401 на защищённом запросе = сессия истекла → выходим.
     // На запросах входа/регистрации (auth) 401 = неверные данные, показываем причину.
-    if(res.status===401 && !auth){ logout(); throw new Error("Нужно войти заново."); }
+    if(res.status===401 && !auth){ logout(); const e=new Error("Нужно войти заново."); e.status=401; throw e; }
     const m = data?.error?.message || data?.detail || "Что-то пошло не так, попробуйте ещё раз.";
-    throw new Error(typeof m==="string"?m:JSON.stringify(m));
+    const e = new Error(typeof m==="string"?m:JSON.stringify(m));
+    e.status = res.status;
+    throw e;
   }
   return data;
 }
@@ -246,6 +266,7 @@ function logout(){
   $("#appView").classList.add("hidden"); $("#authView").classList.remove("hidden");
   $("#logoutBtn").classList.add("hidden");
   $("#levelBox").classList.add("hidden");
+  $("#planPill").classList.add("hidden");
 }
 $("#logoutBtn").onclick=logout;
 
@@ -278,7 +299,65 @@ async function refresh(){
   $("#stLearned").textContent=stats.learned;
   $("#stLeft").textContent=stats.remaining;
   renderList(words.items);
+  refreshBilling();
 }
+
+/* ---------- Тариф / монетизация ---------- */
+let billing=null;
+
+async function refreshBilling(){
+  try{ billing=await api("/billing/status"); }catch(e){ return; }
+  const pill=$("#planPill");
+  pill.classList.remove("hidden");
+  if(billing.is_premium){
+    pill.textContent="⭐ Premium";
+    pill.classList.add("premium");
+  }else{
+    pill.textContent=`Free · ${billing.used_today}/${billing.daily_limit} сегодня`;
+    pill.classList.remove("premium");
+  }
+}
+
+const PREMIUM_FEATURES=[
+  ["Безлимит слов в день", true],
+  ["Подбор слов от ИИ по уровню (A1–C1)", false],
+  ["Генерация картинок к словам «на лету»", false],
+  ["Озвучка фраз и проверка произношения", false],
+  ["Умное повторение и статистика прогресса", false],
+  ["Импорт словарей и экспорт в Anki", false],
+];
+
+function openPremium(){ renderPremium(); $("#premiumModal").classList.add("show"); }
+function closePremium(){ $("#premiumModal").classList.remove("show"); }
+
+function renderPremium(){
+  const premium=billing&&billing.is_premium;
+  const feats=PREMIUM_FEATURES.map(([name,ready])=>
+    `<li>${premium||ready?'✅':'🔒'} ${name}${ready?'':'<span class="soon">скоро</span>'}</li>`).join("");
+  const action = premium
+    ? `<button class="btn ghost" style="width:100%" data-b="deactivate">Вернуться на Free</button>`
+    : `<button class="btn" style="width:100%" data-b="activate">Активировать Premium</button>`;
+  $("#premiumBody").innerHTML=`
+    <h2>PhraseLearn Premium</h2>
+    <div class="price">${premium?'Ваш тариф — Premium ⭐':'Безлимит и будущие возможности'}</div>
+    <ul>${feats}</ul>
+    ${action}
+    <div class="note">Демо-режим: активация без реальной оплаты.</div>
+    <div class="note"><button class="btn ghost sm" data-b="close">Закрыть</button></div>`;
+}
+
+$("#planPill").onclick=openPremium;
+$("#premiumModal").onclick = async (e)=>{
+  if(e.target.id==="premiumModal"){ closePremium(); return; } // клик по фону
+  const btn=e.target.closest("button[data-b]"); if(!btn) return;
+  const b=btn.dataset.b;
+  try{
+    if(b==="activate"){ billing=await api("/billing/activate",{method:"POST"}); toast("Premium активирован ⭐"); }
+    else if(b==="deactivate"){ billing=await api("/billing/deactivate",{method:"POST"}); toast("Тариф Free"); }
+    else if(b==="close"){ closePremium(); return; }
+    renderPremium(); refreshBilling();
+  }catch(err){ toast(err.message); }
+};
 
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
@@ -358,7 +437,10 @@ $("#addBtn").onclick = async ()=>{
     await api("/words",{method:"POST",body:{text,translation}});
     $("#wText").value=""; $("#wTrans").value=""; $("#previewBox").classList.add("hidden");
     await refresh(); toast("Слово добавлено");
-  }catch(e){ msg.textContent=e.message; }
+  }catch(e){
+    msg.textContent=e.message;
+    if(e.status===402) openPremium(); // лимит бесплатного тарифа — предлагаем Premium
+  }
 };
 [$("#wText"),$("#wTrans")].forEach(i=>i.addEventListener("keydown",e=>{ if(e.key==="Enter") $("#addBtn").click(); }));
 

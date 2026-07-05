@@ -30,12 +30,21 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     level: str
+    is_premium: bool
     created_at: datetime
 
     # Этот блок разрешает Pydantic читать данные напрямую из объекта SQLAlchemy
     # (из модели User), а не только из словаря.
     class Config:
         from_attributes = True
+
+
+# Статус тарифа и дневного лимита.
+class BillingStatus(BaseModel):
+    is_premium: bool
+    daily_limit: int      # лимит слов в день на бесплатном тарифе
+    used_today: int       # сколько слов добавлено сегодня
+    remaining: int        # сколько ещё можно сегодня (для Premium — не ограничено)
 
 
 # Смена уровня пользователя.

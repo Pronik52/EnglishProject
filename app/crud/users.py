@@ -38,6 +38,14 @@ def update_level(db: Session, user: models.User, level: str):
     return user
 
 
+# Переключает тариф пользователя (Premium вкл/выкл) и сохраняет в базу.
+def set_premium(db: Session, user: models.User, is_premium: bool):
+    user.is_premium = is_premium
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 # Проверяет логин: находит юзера по email и сверяет пароль.
 # Возвращает объект User если всё ок, иначе None.
 def authenticate_user(db: Session, email: str, password: str):

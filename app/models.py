@@ -25,6 +25,9 @@ class User(Base):
     # По нему генератор подбирает фразы нужной сложности.
     level = Column(String, nullable=False, default="A1", server_default="A1")
 
+    # Тариф: False — бесплатный (лимит слов в день), True — Premium (безлимит).
+    is_premium = Column(Boolean, nullable=False, default=False, server_default="false")
+
     # created_at — дата регистрации. server_default=func.now() значит:
     # при создании записи база сама подставит текущее время.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
