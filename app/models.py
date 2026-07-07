@@ -28,6 +28,10 @@ class User(Base):
     # Тариф: False — бесплатный (лимит слов в день), True — Premium (безлимит).
     is_premium = Column(Boolean, nullable=False, default=False, server_default="false")
 
+    # До какого момента действует Premium. Заложено под будущее авто-отключение
+    # по таймеру (сейчас тариф снимается вручную). NULL — Premium не куплен.
+    premium_until = Column(DateTime(timezone=True), nullable=True)
+
     # created_at — дата регистрации. server_default=func.now() значит:
     # при создании записи база сама подставит текущее время.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -53,6 +57,11 @@ class Word(Base):
 
     # Сколько раз пользователь повторил слово (для будущей логики обучения).
     review_count = Column(Integer, default=0)
+
+    # Сколько раз для слова уже перегенерировали фразу («другая фраза»).
+    # На бесплатном тарифе доступно FREE_REGEN_LIMIT генераций на слово,
+    # дальше — только Premium. Счётчик не сбрасывается.
+    regen_count = Column(Integer, nullable=False, default=0, server_default="0")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

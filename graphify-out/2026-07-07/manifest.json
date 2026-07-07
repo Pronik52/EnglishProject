@@ -5,8 +5,8 @@
     "semantic_hash": "e51077b6a7f1f67afc748f1a32a1557d"
   },
   ".claude/settings.local.json": {
-    "mtime": 1783402495.3394377,
-    "ast_hash": "0398ad8e35013457ce167fc28d2c29d8",
+    "mtime": 1783401464.9521585,
+    "ast_hash": "b4526f6776b8d79d6fd51bc0c4a445d1",
     "semantic_hash": ""
   },
   ".vscode/launch.json": {
@@ -25,13 +25,13 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "app/crud/users.py": {
-    "mtime": 1783402223.442254,
-    "ast_hash": "6aef32cf1419e003998bb39a19c9ff9d",
+    "mtime": 1783256669.2316647,
+    "ast_hash": "24d2e2028c3e4bce5855c96075e77d3a",
     "semantic_hash": ""
   },
   "app/crud/words.py": {
-    "mtime": 1783402230.928568,
-    "ast_hash": "74c6ddf5668e8c109ea67aa8782f5d0e",
+    "mtime": 1783401712.9369884,
+    "ast_hash": "b9fd6f2cbe52c4bc192b0727c69efd52",
     "semantic_hash": ""
   },
   "app/database.py": {
@@ -45,13 +45,13 @@
     "semantic_hash": ""
   },
   "app/main.py": {
-    "mtime": 1783402206.101721,
-    "ast_hash": "06325288f8b3d45b42f06931d18fd2ba",
+    "mtime": 1783401409.5884132,
+    "ast_hash": "28c16e5e4349a6929b6754799f96b914",
     "semantic_hash": ""
   },
   "app/models.py": {
-    "mtime": 1783402199.2947671,
-    "ast_hash": "74b1226845acf2cad8d9afc86dcce0be",
+    "mtime": 1783401409.5885193,
+    "ast_hash": "b835fcaf7f883d0d51487f835215df12",
     "semantic_hash": ""
   },
   "app/routers/__init__.py": {
@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "app/schemas.py": {
-    "mtime": 1783402245.7263517,
-    "ast_hash": "668d60fb4b0c04cb98960b84a409a2d4",
+    "mtime": 1783401409.5889115,
+    "ast_hash": "0313834782ecf4610a4e66414ce45ab1",
     "semantic_hash": ""
   },
   "migrations/env.py": {
@@ -190,8 +190,8 @@
     "semantic_hash": ""
   },
   "app/routers/billing.py": {
-    "mtime": 1783402273.6250973,
-    "ast_hash": "d1d0260d5608400f2cce9a394970c385",
+    "mtime": 1783398982.9974077,
+    "ast_hash": "a3e708ec61a1260b2a99f1cc2e50b070",
     "semantic_hash": ""
   },
   "app/translator.py": {
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1783402392.1116712,
-    "ast_hash": "21959df3d686bd38367f4d31e26cc239",
+    "mtime": 1783401409.5890574,
+    "ast_hash": "5ffababd51e86f3b02dac5a0afac507e",
     "semantic_hash": ""
   }
 }

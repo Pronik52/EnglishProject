@@ -42,9 +42,27 @@ class UserResponse(BaseModel):
 # Статус тарифа и дневного лимита.
 class BillingStatus(BaseModel):
     is_premium: bool
+    premium_until: Optional[datetime] = None  # до какого момента действует Premium
     daily_limit: int      # лимит слов в день на бесплатном тарифе
     used_today: int       # сколько слов добавлено сегодня
     remaining: int        # сколько ещё можно сегодня (для Premium — не ограничено)
+    regen_limit: int      # бесплатных генераций фразы на слово
+
+
+# Покупка Premium. Платёжные данные фиктивные — оплату не проводим,
+# карту не валидируем и НЕ храним, поле нужно только чтобы имитировать форму.
+class PurchaseRequest(BaseModel):
+    plan: int  # срок в месяцах: 1, 3 или 12
+    card_number: Optional[str] = None
+    card_exp: Optional[str] = None
+    card_cvc: Optional[str] = None
+    card_holder: Optional[str] = None
+
+    @validator('plan')
+    def plan_must_be_valid(cls, v):
+        if v not in (1, 3, 12):
+            raise ValueError('Допустимые планы: 1, 3 или 12 месяцев')
+        return v
 
 
 # Смена уровня пользователя.
@@ -78,6 +96,7 @@ class WordResponse(BaseModel):
     translation: str
     phrase: Optional[str] = None
     review_count: int
+    regen_count: int = 0
     is_learned: bool
     owner_id: int
     created_at: datetime

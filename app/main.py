@@ -37,6 +37,14 @@ if engine.dialect.name == "sqlite":
     if "is_premium" not in _cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN is_premium BOOLEAN NOT NULL DEFAULT 0"))
+    if "premium_until" not in _cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN premium_until DATETIME"))
+
+    _word_cols = {c["name"] for c in inspect(engine).get_columns("words")}
+    if "regen_count" not in _word_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE words ADD COLUMN regen_count INTEGER NOT NULL DEFAULT 0"))
 
 # Глобальный обработчик ошибок
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

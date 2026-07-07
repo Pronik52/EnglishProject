@@ -15,6 +15,9 @@ import re
 import random
 from typing import List, Optional
 
+from .ai_generator import ai_generate_phrase
+from .translator import translate_to_ru
+
 
 # --- Шаблоны по уровню сложности и части речи. {w} — место для слова. ---
 # Уровни CEFR сгруппированы в три набора: simple (A1/A2), medium (B1/B2),
@@ -212,3 +215,26 @@ def generate_variants(word: str, translation: Optional[str] = None,
 def generate_phrase(word: str, translation: Optional[str] = None, level: str = "A1") -> str:
     """Одна фраза, подходящая слову по смыслу и уровню сложности."""
     return generate_variants(word, translation, level=level, count=1)[0]
+
+
+async def get_phrase(word: str, translation: str, level: str = "A1") -> dict:
+    """Английская фраза со словом + её русский перевод.
+
+    Сначала пробуем ИИ (Groq), при недоступности — детерминированный оффлайн
+    генератор выше. Перевод при необходимости дозаполняем переводчиком.
+    Всегда возвращает валидный dict {"phrase_en": ..., "phrase_ru": ...};
+    в крайнем случае phrase_ru="" (ни отсутствие сети, ни падение сервисов
+    не роняют приложение).
+    """
+    result = await ai_generate_phrase(word, translation, level)
+
+    if result and result["phrase_en"]:
+        phrase_en = result["phrase_en"]
+        # ИИ дал перевод — берём его; иначе переводим фразу отдельно.
+        phrase_ru = result["phrase_ru"] or translate_to_ru(phrase_en)
+        return {"phrase_en": phrase_en, "phrase_ru": phrase_ru}
+
+    # Фолбэк: ИИ недоступен — оффлайн-генерация + перевод фразы.
+    phrase_en = generate_phrase(word, translation, level=level)
+    phrase_ru = translate_to_ru(phrase_en)
+    return {"phrase_en": phrase_en, "phrase_ru": phrase_ru}

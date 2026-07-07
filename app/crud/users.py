@@ -1,3 +1,5 @@
+from datetime import datetime, timezone, timedelta
+
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -39,8 +41,14 @@ def update_level(db: Session, user: models.User, level: str):
 
 
 # Переключает тариф пользователя (Premium вкл/выкл) и сохраняет в базу.
-def set_premium(db: Session, user: models.User, is_premium: bool):
+# months — на сколько месяцев оформлен Premium (1/3/12); определяет premium_until.
+# При отключении (is_premium=False) срок сбрасывается в NULL.
+def set_premium(db: Session, user: models.User, is_premium: bool, months: int = 0):
     user.is_premium = is_premium
+    if is_premium and months:
+        user.premium_until = datetime.now(timezone.utc) + timedelta(days=30 * months)
+    else:
+        user.premium_until = None
     db.commit()
     db.refresh(user)
     return user

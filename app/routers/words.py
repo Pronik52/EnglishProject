@@ -112,14 +112,24 @@ def review_word(
 
 # Сгенерировать другую фразу для уже сохранённого слова.
 @router.patch("/{word_id}/regenerate-phrase", response_model=schemas.WordResponse)
-def regenerate_phrase(
+async def regenerate_phrase(
     word_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    word = crud_words.regenerate_phrase(db, word_id=word_id, owner_id=current_user.id, level=current_user.level)
-    if word is None:
+    status, word = await crud_words.regenerate_phrase(
+        db, word_id=word_id, owner_id=current_user.id,
+        level=current_user.level, is_premium=current_user.is_premium
+    )
+    if status == "not_found":
         raise HTTPException(status_code=404, detail="Слово не найдено")
+    if status == "limit":
+        raise HTTPException(
+            status_code=402,
+            detail=(f"Лимит бесплатных генераций фразы для этого слова исчерпан "
+                    f"({crud_words.FREE_REGEN_LIMIT} на слово). "
+                    f"Оформите Premium для безлимита.")
+        )
     return word
 
 

@@ -39,6 +39,29 @@
   .modal li{padding:9px 0; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:baseline; font-size:15px}
   .modal li .soon{margin-left:auto; font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:2px 8px; white-space:nowrap}
   .modal .note{font-size:12px; color:var(--muted); margin-top:14px; text-align:center}
+  /* Карточки тарифных планов */
+  .plans{display:grid; gap:10px; margin:0 0 18px}
+  .plan{position:relative; display:flex; align-items:center; gap:12px; text-align:left; width:100%;
+    background:var(--card2); border:1px solid var(--line); border-radius:14px; padding:14px 16px; cursor:pointer; color:var(--text)}
+  .plan:hover{border-color:var(--accent)}
+  .plan.best{border-color:var(--accent)}
+  .plan .p-term{font-weight:700; font-size:16px}
+  .plan .p-per{font-size:12px; color:var(--muted)}
+  .plan .p-price{margin-left:auto; text-align:right; font-weight:800; font-size:18px; white-space:nowrap}
+  .plan .p-old{display:block; font-size:12px; color:var(--muted); text-decoration:line-through; font-weight:500}
+  .plan .p-badge{position:absolute; top:-9px; right:14px; font-size:11px; font-weight:700; color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:20px; padding:2px 9px}
+  /* Форма карты */
+  .cardform{display:grid; gap:12px; margin:4px 0 18px}
+  .cardform label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px}
+  .cardform input{width:100%; background:var(--card2); border:1px solid var(--line); color:var(--text);
+    padding:11px 12px; border-radius:10px; font:inherit; font-size:15px; outline:none; letter-spacing:.4px}
+  .cardform input:focus{border-color:var(--accent)}
+  .cardform .row{display:flex; gap:12px}
+  .cardform .row>div{flex:1}
+  .card-err{color:var(--danger); font-size:13px; min-height:18px; margin:-6px 0 6px}
+  .modal .back{background:none; border:none; color:var(--muted); cursor:pointer; font:inherit; font-size:13px; padding:0; margin-bottom:12px}
+  .modal .back:hover{color:var(--text)}
   .levelbox{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
   .levelbox select{background:var(--card2); border:1px solid var(--line); color:var(--text);
     padding:8px 10px; border-radius:10px; font:inherit; font-size:14px; outline:none; cursor:pointer}
@@ -299,8 +322,9 @@ async function refresh(){
   $("#stTotal").textContent=stats.total;
   $("#stLearned").textContent=stats.learned;
   $("#stLeft").textContent=stats.remaining;
-  renderList(words.items);
+  // billing нужен до renderList: по нему считаем остаток генераций на кнопке.
   if(bill){ billing=bill; renderPill(); }
+  renderList(words.items);
 }
 
 /* ---------- Тариф / монетизация ---------- */
@@ -320,6 +344,9 @@ function renderPill(){
   }
 }
 
+// Бесплатных генераций фразы на слово (совпадает с FREE_REGEN_LIMIT на бэке).
+const REGEN_LIMIT=5;
+
 const PREMIUM_FEATURES=[
   ["Безлимит слов в день", true],
   ["Подбор слов от ИИ по уровню (A1–C1)", false],
@@ -329,36 +356,137 @@ const PREMIUM_FEATURES=[
   ["Импорт словарей и экспорт в Anki", false],
 ];
 
-function openPremium(){ renderPremium(); $("#premiumModal").classList.add("show"); }
+// Тарифные планы (срок в месяцах должен совпадать с допустимыми на бэке: 1/3/12).
+const PLANS=[
+  {months:1,  price:299,  old:null, per:"299 ₽ / мес",  term:"1 месяц"},
+  {months:3,  price:799,  old:897,  per:"266 ₽ / мес",  term:"3 месяца",  badge:"−11%"},
+  {months:12, price:2490, old:3588, per:"208 ₽ / мес",  term:"12 месяцев", badge:"−30%", best:true},
+];
+const fmtRub=n=>n.toLocaleString("ru-RU")+" ₽";
+
+// Состояние окна покупки: шаг ("plans" → выбор плана, "card" → форма оплаты).
+let premiumStep="plans", selectedPlan=null;
+
+function openPremium(){ premiumStep="plans"; selectedPlan=null; renderPremium(); $("#premiumModal").classList.add("show"); }
 function closePremium(){ $("#premiumModal").classList.remove("show"); }
 
+// Роутер окна: активному Premium — статус, иначе выбор плана либо форма карты.
 function renderPremium(){
-  const premium=billing&&billing.is_premium;
-  const feats=PREMIUM_FEATURES.map(([name,ready])=>
-    `<li>${premium||ready?'✅':'🔒'} ${name}${ready?'':'<span class="soon">скоро</span>'}</li>`).join("");
-  const action = premium
-    ? `<button class="btn ghost" style="width:100%" data-b="deactivate">Вернуться на Free</button>`
-    : `<button class="btn" style="width:100%" data-b="activate">Активировать Premium</button>`;
+  if(billing && billing.is_premium){ renderPremiumStatus(); return; }
+  if(premiumStep==="card" && selectedPlan){ renderCardForm(); return; }
+  renderPlans();
+}
+
+function featsList(){
+  return PREMIUM_FEATURES.map(([name,ready])=>
+    `<li>${ready?'✅':'🔒'} ${name}${ready?'':'<span class="soon">скоро</span>'}</li>`).join("");
+}
+
+function renderPlans(){
+  const plans=PLANS.map(p=>`
+    <button class="plan ${p.best?'best':''}" data-plan="${p.months}">
+      ${p.badge?`<span class="p-badge">${p.badge}</span>`:''}
+      <div>
+        <div class="p-term">${p.term}</div>
+        <div class="p-per">${p.per}</div>
+      </div>
+      <div class="p-price">${p.old?`<span class="p-old">${fmtRub(p.old)}</span>`:''}${fmtRub(p.price)}</div>
+    </button>`).join("");
   $("#premiumBody").innerHTML=`
     <h2>PhraseLearn Premium</h2>
-    <div class="price">${premium?'Ваш тариф — Premium ⭐':'Безлимит и будущие возможности'}</div>
-    <ul>${feats}</ul>
-    ${action}
-    <div class="note">Демо-режим: активация без реальной оплаты.</div>
+    <div class="price">Выберите срок подписки</div>
+    <div class="plans">${plans}</div>
+    <ul>${featsList()}</ul>
+    <div class="note">Демо-режим: оплата фиктивная, деньги не списываются.</div>
     <div class="note"><button class="btn ghost sm" data-b="close">Закрыть</button></div>`;
+}
+
+function renderCardForm(){
+  const p=selectedPlan;
+  $("#premiumBody").innerHTML=`
+    <button class="back" data-b="back">← Выбрать другой план</button>
+    <h2>Оплата Premium</h2>
+    <div class="price">${p.term} · <b>${fmtRub(p.price)}</b></div>
+    <div class="cardform">
+      <div>
+        <label>Номер карты</label>
+        <input id="ccNum" inputmode="numeric" autocomplete="off" maxlength="19" placeholder="0000 0000 0000 0000">
+      </div>
+      <div class="row">
+        <div><label>Срок действия</label><input id="ccExp" inputmode="numeric" maxlength="5" placeholder="ММ/ГГ"></div>
+        <div><label>CVC</label><input id="ccCvc" inputmode="numeric" maxlength="3" placeholder="123"></div>
+      </div>
+      <div>
+        <label>Имя на карте</label>
+        <input id="ccName" autocomplete="off" placeholder="IVAN IVANOV">
+      </div>
+    </div>
+    <div class="card-err" id="ccErr"></div>
+    <button class="btn" style="width:100%" data-b="pay">Оплатить ${fmtRub(p.price)}</button>
+    <div class="note">🔒 Демо-режим: данные карты никуда не отправляются и не сохраняются.</div>`;
+  // Лёгкое форматирование ввода — только визуально, оплата всё равно фиктивная.
+  const num=$("#ccNum"); num.oninput=()=>{ const v=num.value.replace(/\D/g,"").slice(0,16); num.value=v.replace(/(.{4})/g,"$1 ").trim(); };
+  const exp=$("#ccExp"); exp.oninput=()=>{ const v=exp.value.replace(/\D/g,"").slice(0,4); exp.value=v.length>2?v.slice(0,2)+"/"+v.slice(2):v; };
+  const cvc=$("#ccCvc"); cvc.oninput=()=>{ cvc.value=cvc.value.replace(/\D/g,"").slice(0,3); };
+}
+
+function renderPremiumStatus(){
+  const until=billing.premium_until
+    ? new Date(billing.premium_until).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"})
+    : null;
+  $("#premiumBody").innerHTML=`
+    <h2>Premium активен ⭐</h2>
+    <div class="price">${until?`Действует до ${until}`:"Подписка активна"}</div>
+    <ul>${featsList()}</ul>
+    <button class="btn ghost" style="width:100%" data-b="deactivate">Вернуться на Free</button>
+    <div class="note">Отмена пока вручную. В будущем Premium будет отключаться автоматически по истечении срока.</div>
+    <div class="note"><button class="btn ghost sm" data-b="close">Закрыть</button></div>`;
+}
+
+// Фиктивная проверка карты — чтобы форма ощущалась настоящей. Возвращает текст ошибки или null.
+function validateCard(){
+  const num=$("#ccNum").value.replace(/\s/g,"");
+  const exp=$("#ccExp").value, cvc=$("#ccCvc").value, name=$("#ccName").value.trim();
+  if(num.length<16) return "Введите номер карты (16 цифр)";
+  if(!/^\d{2}\/\d{2}$/.test(exp)) return "Срок в формате ММ/ГГ";
+  const mm=+exp.slice(0,2); if(mm<1||mm>12) return "Неверный месяц в сроке";
+  if(cvc.length<3) return "CVC — 3 цифры";
+  if(!name) return "Введите имя на карте";
+  return null;
 }
 
 $("#planPill").onclick=openPremium;
 $("#premiumModal").onclick = async (e)=>{
   if(e.target.id==="premiumModal"){ closePremium(); return; } // клик по фону
+  // Выбор плана → переход к форме оплаты.
+  const planBtn=e.target.closest("button[data-plan]");
+  if(planBtn){ selectedPlan=PLANS.find(p=>p.months==planBtn.dataset.plan); premiumStep="card"; renderPremium(); return; }
   const btn=e.target.closest("button[data-b]"); if(!btn) return;
   const b=btn.dataset.b;
+  if(b==="close"){ closePremium(); return; }
+  if(b==="back"){ premiumStep="plans"; selectedPlan=null; renderPremium(); return; }
   try{
-    if(b==="activate"){ billing=await api("/billing/activate",{method:"POST"}); toast("Premium активирован ⭐"); }
-    else if(b==="deactivate"){ billing=await api("/billing/deactivate",{method:"POST"}); toast("Тариф Free"); }
-    else if(b==="close"){ closePremium(); return; }
-    renderPremium(); renderPill(); // billing уже свежий из ответа POST — без повторного запроса
-  }catch(err){ toast(err.message); }
+    if(b==="pay"){
+      const err=validateCard();
+      if(err){ $("#ccErr").textContent=err; return; }
+      await api("/billing/activate",{method:"POST",body:{
+        plan:selectedPlan.months,
+        card_number:$("#ccNum").value, card_exp:$("#ccExp").value,
+        card_cvc:$("#ccCvc").value, card_holder:$("#ccName").value
+      }});
+      toast("Premium активирован ⭐");
+      closePremium();
+      await refresh(); // обновляем тариф и снимаем блокировки на фразах
+    } else if(b==="deactivate"){
+      await api("/billing/deactivate",{method:"POST"});
+      toast("Тариф Free");
+      await refresh(); // сбрасывает лимиты: кнопки «другая фраза» снова доступны
+      renderPremium();
+    }
+  }catch(err){
+    const errBox=$("#ccErr");
+    if(b==="pay" && errBox) errBox.textContent=err.message; else toast(err.message);
+  }
 };
 
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -373,8 +501,13 @@ function highlight(phrase, word){
 function renderList(items){
   const box=$("#list");
   if(!items.length){ box.innerHTML='<div class="empty">Пока нет слов. Добавьте первое сверху ☝️</div>'; return; }
+  const premium = billing && billing.is_premium;
   box.innerHTML = items.map(w=>{
     const pct=Math.min(100, w.review_count/5*100);
+    // Остаток бесплатных генераций фразы по слову (Premium — без лимита).
+    const regenLeft = Math.max(0, REGEN_LIMIT - (w.regen_count||0));
+    const regenLabel = premium ? "🔁 Другая фраза"
+      : regenLeft>0 ? `🔁 Другая фраза (${regenLeft})` : "🔁 Другая фраза 🔒";
     return `<div class="word ${w.is_learned?'learned':''}" data-id="${w.id}">
       <div class="head">
         <span class="en">${esc(w.text)}</span>
@@ -385,7 +518,7 @@ function renderList(items){
       <div class="progress"><i style="width:${pct}%"></i></div>
       <div class="actions">
         <button class="btn sm" data-act="review">Повторить</button>
-        <button class="btn ghost sm" data-act="regen">🔁 Другая фраза</button>
+        <button class="btn ghost sm" data-act="regen">${regenLabel}</button>
         <button class="btn ghost sm" data-act="learned">${w.is_learned?'Вернуть в учёбу':'Отметить выученным'}</button>
         <button class="btn ghost sm" data-act="reset" ${w.review_count===0&&!w.is_learned?'disabled style="opacity:.4"':''}>↺ Сбросить</button>
         <button class="btn ghost sm" data-act="del" style="margin-left:auto;color:var(--danger)">Удалить</button>
@@ -402,6 +535,7 @@ $("#list").onclick = async (e)=>{
   try{
     if(act==="review"){ await api(`/words/${id}/review`,{method:"PATCH"}); toast("Повторили ✓"); }
     else if(act==="regen"){ await api(`/words/${id}/regenerate-phrase`,{method:"PATCH"}); toast("Новая фраза"); }
+    // (402 по регенерации ловим ниже в catch — предлагаем Premium)
     else if(act==="learned"){
       const w=btn.closest(".word"); const isLearned=w.classList.contains("learned");
       await api(`/words/${id}/learned`,{method:"PATCH",body:{is_learned:!isLearned}});
@@ -409,7 +543,10 @@ $("#list").onclick = async (e)=>{
     else if(act==="reset"){ await api(`/words/${id}/reset`,{method:"PATCH"}); toast("Прогресс сброшен"); }
     else if(act==="del"){ await api(`/words/${id}`,{method:"DELETE"}); toast("Удалено"); }
     await refresh();
-  }catch(err){ toast(err.message); }
+  }catch(err){
+    toast(err.message);
+    if(err.status===402) openPremium(); // лимит генераций фразы — предлагаем Premium
+  }
 };
 
 /* Предпросмотр фразы при вводе слова или перевода */

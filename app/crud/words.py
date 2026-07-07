@@ -4,9 +4,23 @@ from sqlalchemy import func
 
 from .. import models, schemas
 from ..phrases import generate_phrase, generate_variants
+from ..ai_generator import ai_generate_phrase
 
 # Сколько слов в сутки можно добавить на бесплатном тарифе. Premium — без лимита.
 FREE_DAILY_WORD_LIMIT = 10
+
+# Сколько раз можно перегенерировать фразу для ОДНОГО слова на бесплатном тарифе.
+# Дальше кнопка «другая фраза» становится Premium-функцией. Premium — без лимита.
+FREE_REGEN_LIMIT = 5
+
+
+# Обнуляет счётчики генераций фразы у всех слов пользователя.
+# Вызывается при возврате с Premium на Free — чтобы снова были доступны 5 генераций.
+def reset_regens(db: Session, owner_id: int) -> None:
+    db.query(models.Word).filter(
+        models.Word.owner_id == owner_id
+    ).update({models.Word.regen_count: 0})
+    db.commit()
 
 
 # Сколько слов пользователь добавил за текущие сутки (UTC).
@@ -33,20 +47,36 @@ def create_word(db: Session, word: schemas.WordCreate, owner_id: int, level: str
     return db_word
 
 
+# Свежая случайная фраза для слова: сначала ИИ (даёт разный результат каждый
+# раз), при недоступности — оффлайн-варианты. Стараемся не повторить текущую.
+async def _fresh_phrase(word: str, translation: str, level: str, avoid: str) -> str:
+    ai = await ai_generate_phrase(word, translation, level, avoid=avoid)
+    if ai and ai["phrase_en"] and ai["phrase_en"] != avoid:
+        return ai["phrase_en"]
+    # Фолбэк: детерминированные варианты, берём отличный от текущего.
+    variants = generate_variants(word, translation, level=level, count=3)
+    return next((v for v in variants if v != avoid), variants[0])
+
+
 # Генерирует новую фразу для существующего слова (кнопка "другая фраза").
-def regenerate_phrase(db: Session, word_id: int, owner_id: int, level: str = "A1"):
+# Возвращает кортеж (status, word):
+#   "not_found" — слова нет / чужое;
+#   "limit"     — бесплатный лимит генераций по этому слову исчерпан;
+#   "ok"        — фраза обновлена.
+async def regenerate_phrase(db: Session, word_id: int, owner_id: int,
+                            level: str = "A1", is_premium: bool = False):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
-        return None
+        return "not_found", None
 
-    # Выбираем вариант, отличающийся от текущего, если это возможно.
-    variants = generate_variants(word.text, word.translation, level=level, count=3)
-    new_phrase = next((v for v in variants if v != word.phrase), variants[0])
+    if not is_premium and (word.regen_count or 0) >= FREE_REGEN_LIMIT:
+        return "limit", word
 
-    word.phrase = new_phrase
+    word.phrase = await _fresh_phrase(word.text, word.translation, level, avoid=word.phrase)
+    word.regen_count = (word.regen_count or 0) + 1
     db.commit()
     db.refresh(word)
-    return word
+    return "ok", word
 
 
 # Возвращает слова конкретного пользователя с пагинацией и фильтрацией.
