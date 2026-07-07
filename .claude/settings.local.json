@@ -33,7 +33,9 @@
       "Bash(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -d 'username=demo@test.com&password=Secret123' -o /dev/null -w '  HTTP %{http_code}\\\\n')",
       "Bash(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -d 'username=demo@test.com&password=wrong')",
       "Bash(python3 -c \"import re;h=open\\('/Users/nikita/EnglishProject/frontend/index.html'\\).read\\(\\);open\\('c.js','w'\\).write\\(re.search\\(r'<script>\\(.*\\)</script>',h,re.S\\).group\\(1\\)\\)\")",
-      "Bash(node --check c.js)"
+      "Bash(node --check c.js)",
+      "Bash(graphify query *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('app/routers/billing.py'\\).read\\(\\)\\); print\\('billing.py OK'\\)\")"
     ]
   }
 }

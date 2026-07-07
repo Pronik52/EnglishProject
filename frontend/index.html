@@ -291,22 +291,24 @@ async function enterApp(){
 }
 
 async function refresh(){
-  const [stats, words] = await Promise.all([
+  const [stats, words, bill] = await Promise.all([
     api("/words/stats"),
-    api("/words?limit=1000")
+    api("/words?limit=1000"),
+    api("/billing/status").catch(()=>null)
   ]);
   $("#stTotal").textContent=stats.total;
   $("#stLearned").textContent=stats.learned;
   $("#stLeft").textContent=stats.remaining;
   renderList(words.items);
-  refreshBilling();
+  if(bill){ billing=bill; renderPill(); }
 }
 
 /* ---------- Тариф / монетизация ---------- */
 let billing=null;
 
-async function refreshBilling(){
-  try{ billing=await api("/billing/status"); }catch(e){ return; }
+// Рисует пилюлю тарифа по текущему billing (без сетевого запроса).
+function renderPill(){
+  if(!billing) return;
   const pill=$("#planPill");
   pill.classList.remove("hidden");
   if(billing.is_premium){
@@ -355,7 +357,7 @@ $("#premiumModal").onclick = async (e)=>{
     if(b==="activate"){ billing=await api("/billing/activate",{method:"POST"}); toast("Premium активирован ⭐"); }
     else if(b==="deactivate"){ billing=await api("/billing/deactivate",{method:"POST"}); toast("Тариф Free"); }
     else if(b==="close"){ closePremium(); return; }
-    renderPremium(); refreshBilling();
+    renderPremium(); renderPill(); // billing уже свежий из ответа POST — без повторного запроса
   }catch(err){ toast(err.message); }
 };
 

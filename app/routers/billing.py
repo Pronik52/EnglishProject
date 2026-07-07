@@ -10,8 +10,9 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 def _status(db: Session, user: models.User) -> dict:
-    used = crud_words.count_words_created_today(db, user.id)
     limit = crud_words.FREE_DAILY_WORD_LIMIT
+    # Для Premium дневной лимит не действует — COUNT не нужен.
+    used = 0 if user.is_premium else crud_words.count_words_created_today(db, user.id)
     return {
         "is_premium": user.is_premium,
         "daily_limit": limit,
