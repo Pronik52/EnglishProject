@@ -1,11 +1,11 @@
 # Graph Report - EnglishProject  (2026-07-08)
 
 ## Corpus Check
-- 38 files · ~22,758 words
+- 38 files · ~22,376 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 284 nodes · 402 edges · 63 communities (21 shown, 42 thin omitted)
+- 283 nodes · 397 edges · 62 communities (20 shown, 42 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -80,12 +80,14 @@
 4. `What You Must Do When Invoked` - 12 edges
 5. `/graphify` - 10 edges
 6. `generate_variants()` - 8 edges
-7. `graphify reference: extra exports and benchmark` - 8 edges
-8. `ai_generate_phrase()` - 7 edges
-9. `get_phrase()` - 7 edges
-10. `translate_to_ru()` - 7 edges
+7. `translate_to_ru()` - 8 edges
+8. `graphify reference: extra exports and benchmark` - 8 edges
+9. `ai_generate_phrase()` - 7 edges
+10. `get_words_by_owner()` - 6 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `test_create_word()` --calls--> `create_word()`  [EXTRACTED]
+  tests/unit/test_crud_words.py → app/crud/words.py
 - `test_get_word()` --calls--> `get_word()`  [EXTRACTED]
   tests/unit/test_crud_words.py → app/crud/words.py
 - `test_get_word_not_found()` --calls--> `get_word()`  [EXTRACTED]
@@ -94,21 +96,19 @@
   tests/unit/test_crud_words.py → app/crud/words.py
 - `test_delete_word_not_found()` --calls--> `delete_word()`  [EXTRACTED]
   tests/unit/test_crud_words.py → app/crud/words.py
-- `test_review_word()` --calls--> `review_word()`  [EXTRACTED]
-  tests/unit/test_crud_words.py → app/crud/words.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (63 total, 42 thin omitted)
+## Communities (62 total, 42 thin omitted)
 
 ### Community 0 - "Graphify Pipeline & Exports"
 Cohesion: 0.29
 Nodes (5): Architecture, Commands, graphify, Project overview, Testing
 
 ### Community 1 - "Word CRUD & Tests"
-Cohesion: 0.10
-Nodes (38): ai_generate_phrase(), _build_prompt(), Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-, Промпт, требующий строго JSON с английской фразой и её переводом.      scenario, Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф, answer_word(), _apply_srs(), count_words_created_today() (+30 more)
+Cohesion: 0.07
+Nodes (56): ai_generate_phrase(), _build_prompt(), Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-, Промпт, требующий строго JSON с английской фразой и её переводом.      scenario, Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф, answer_word(), count_words_created_today(), create_word() (+48 more)
 
 ### Community 2 - "DB Models & Routers"
 Cohesion: 0.35
@@ -116,15 +116,15 @@ Nodes (16): User, answer_word(), create_word(), get_random_word(), get_stats(), 
 
 ### Community 3 - "Authentication & Users"
 Cohesion: 0.21
-Nodes (13): authenticate_user(), get_user_by_email(), Session, set_premium(), update_level(), activate_premium(), billing_status(), deactivate_premium() (+5 more)
+Nodes (11): authenticate_user(), create_user(), get_user_by_email(), Session, set_premium(), update_level(), UserCreate, decode_access_token() (+3 more)
 
 ### Community 4 - "App Entry & Error Handling"
-Cohesion: 0.16
-Nodes (19): create_word(), get_random_unlearned_word(), get_words_by_owner(), test_create_word(), test_delete_word_not_found(), test_get_random_unlearned_word(), test_get_random_unlearned_word_none(), test_get_word() (+11 more)
+Cohesion: 0.24
+Nodes (11): get_db(), login(), Session, read_current_user(), register(), activate_premium(), billing_status(), deactivate_premium() (+3 more)
 
 ### Community 5 - "Pydantic Schemas"
-Cohesion: 0.15
-Nodes (16): create_user(), AnswerRequest, BillingStatus, Config, LevelUpdate, PaginatedWordResponse, PhrasePreviewRequest, PhrasePreviewResponse (+8 more)
+Cohesion: 0.18
+Nodes (14): update_level(), AnswerRequest, BillingStatus, Config, LevelUpdate, PaginatedWordResponse, PhrasePreviewRequest, PhrasePreviewResponse (+6 more)
 
 ### Community 6 - "API Integration Tests"
 Cohesion: 0.22
@@ -136,7 +136,7 @@ Nodes (6): Word, Base, Режим offline: генерирует SQL-скрипт
 
 ### Community 8 - "Test Fixtures"
 Cohesion: 0.09
-Nodes (13): get_db(), AppException, http_exception_handler(), validation_exception_handler(), log_requests(), login(), Session, read_current_user() (+5 more)
+Nodes (6): AppException, http_exception_handler(), validation_exception_handler(), log_requests(), Request, RequestValidationError
 
 ### Community 16 - "SQLAlchemy Session"
 Cohesion: 0.08
@@ -170,17 +170,17 @@ Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphif
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `create_word()` connect `App Entry & Error Handling` to `Word CRUD & Tests`, `Pydantic Schemas`, `Alembic Migration Env`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
-- **Why does `User` connect `DB Models & Routers` to `Test Fixtures`, `Authentication & Users`, `Pydantic Schemas`, `Alembic Migration Env`?**
+- **Why does `User` connect `DB Models & Routers` to `Authentication & Users`, `App Entry & Error Handling`, `Pydantic Schemas`, `Alembic Migration Env`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+- **Why does `create_word()` connect `Word CRUD & Tests` to `Pydantic Schemas`?**
   _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `WordCreate` connect `Pydantic Schemas` to `DB Models & Routers`, `App Entry & Error Handling`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `WordCreate` connect `Pydantic Schemas` to `Word CRUD & Tests`, `DB Models & Routers`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Are the 13 inferred relationships involving `HTTPException` (e.g. with `login()` and `register()`) actually correct?**
   _`HTTPException` has 13 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-`, `Промпт, требующий строго JSON с английской фразой и её переводом.      scenario`, `Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф` to the rest of the system?**
   _104 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Word CRUD & Tests` be split into smaller, more focused modules?**
-  _Cohesion score 0.0975609756097561 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07049180327868852 - nodes in this community are weakly interconnected._
 - **Should `Test Fixtures` be split into smaller, more focused modules?**
-  _Cohesion score 0.09401709401709402 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08666666666666667 - nodes in this community are weakly interconnected._

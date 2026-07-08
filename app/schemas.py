@@ -95,8 +95,11 @@ class WordResponse(BaseModel):
     text: str
     translation: str
     phrase: Optional[str] = None
+    phrase_ru: Optional[str] = None
     review_count: int
     regen_count: int = 0
+    srs_level: int = 0
+    due_at: Optional[datetime] = None
     is_learned: bool
     owner_id: int
     created_at: datetime

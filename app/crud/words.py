@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from .. import models, schemas
-from ..phrases import generate_phrase, generate_variants
+from ..phrases import generate_phrase, generate_variants, get_phrase
 from ..ai_generator import ai_generate_phrase
+from ..translator import translate_to_ru
 
 # Сколько слов в сутки можно добавить на бесплатном тарифе. Premium — без лимита.
 FREE_DAILY_WORD_LIMIT = 10
@@ -12,6 +13,24 @@ FREE_DAILY_WORD_LIMIT = 10
 # Сколько раз можно перегенерировать фразу для ОДНОГО слова на бесплатном тарифе.
 # Дальше кнопка «другая фраза» становится Premium-функцией. Premium — без лимита.
 FREE_REGEN_LIMIT = 5
+
+# --- SRS (интервальные повторы, система Лейтнера) ---
+SRS_MAX_LEVEL = 5
+# Дней до следующего повтора после достижения уровня (индекс = уровень).
+# Уровень 0 (новое слово или ошибка) — повтор сразу.
+SRS_INTERVALS_DAYS = [0, 1, 3, 7, 14, 30]
+
+
+# Пересчитывает SRS слова по результату повтора: верно → уровень выше и интервал
+# больше; ошибка → сброс на 0 и повтор сразу. is_learned — по достижении максимума.
+def _apply_srs(word: models.Word, correct: bool):
+    if correct:
+        word.srs_level = min((word.srs_level or 0) + 1, SRS_MAX_LEVEL)
+    else:
+        word.srs_level = 0
+    word.due_at = datetime.utcnow() + timedelta(days=SRS_INTERVALS_DAYS[word.srs_level])
+    word.is_learned = word.srs_level >= SRS_MAX_LEVEL
+    word.review_count = (word.review_count or 0) + 1
 
 
 # Обнуляет счётчики генераций фразы у всех слов пользователя.
@@ -34,11 +53,17 @@ def count_words_created_today(db: Session, owner_id: int) -> int:
 # Создаёт слово для конкретного владельца.
 # owner_id передаём отдельно — он берётся из токена, а не из схемы.
 # Бэкенд сразу генерирует короткую фразу с этим словом для запоминания.
-def create_word(db: Session, word: schemas.WordCreate, owner_id: int, level: str = "A1"):
+async def create_word(db: Session, word: schemas.WordCreate, owner_id: int, level: str = "A1"):
+    # Фраза и её перевод формируются вместе (ИИ, с офлайн-фолбэком) и сразу
+    # сохраняются в базу — чтобы перевод хранился с момента создания слова.
+    data = await get_phrase(word.text, word.translation, level=level)
     db_word = models.Word(
         text=word.text,
         translation=word.translation,
-        phrase=generate_phrase(word.text, word.translation, level=level),
+        phrase=data["phrase_en"],
+        phrase_ru=data["phrase_ru"],
+        srs_level=0,
+        due_at=datetime.utcnow(),  # новое слово сразу «к повтору»
         owner_id=owner_id
     )
     db.add(db_word)
@@ -47,15 +72,32 @@ def create_word(db: Session, word: schemas.WordCreate, owner_id: int, level: str
     return db_word
 
 
-# Свежая случайная фраза для слова: сначала ИИ (даёт разный результат каждый
-# раз), при недоступности — оффлайн-варианты. Стараемся не повторить текущую.
-async def _fresh_phrase(word: str, translation: str, level: str, avoid: str) -> str:
+# Свежая случайная фраза для слова + её русский перевод. Сначала ИИ (даёт разный
+# результат каждый раз), при недоступности — оффлайн-варианты. Не повторяем текущую.
+async def _fresh_phrase(word: str, translation: str, level: str, avoid: str):
     ai = await ai_generate_phrase(word, translation, level, avoid=avoid)
     if ai and ai["phrase_en"] and ai["phrase_en"] != avoid:
-        return ai["phrase_en"]
+        en = ai["phrase_en"]
+        return en, (ai["phrase_ru"] or translate_to_ru(en))
     # Фолбэк: детерминированные варианты, берём отличный от текущего.
     variants = generate_variants(word, translation, level=level, count=3)
-    return next((v for v in variants if v != avoid), variants[0])
+    en = next((v for v in variants if v != avoid), variants[0])
+    return en, translate_to_ru(en)
+
+
+# Лениво возвращает русский перевод фразы слова, кешируя его в phrase_ru.
+# None — слова нет/чужое; "" — перевод недоступен (офлайн), но слово найдено.
+def get_phrase_translation(db: Session, word_id: int, owner_id: int):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return None
+    if word.phrase_ru:
+        return word.phrase_ru
+    ru = translate_to_ru(word.phrase or "")
+    if ru:
+        word.phrase_ru = ru
+        db.commit()
+    return ru
 
 
 # Генерирует новую фразу для существующего слова (кнопка "другая фраза").
@@ -72,7 +114,7 @@ async def regenerate_phrase(db: Session, word_id: int, owner_id: int,
     if not is_premium and (word.regen_count or 0) >= FREE_REGEN_LIMIT:
         return "limit", word
 
-    word.phrase = await _fresh_phrase(word.text, word.translation, level, avoid=word.phrase)
+    word.phrase, word.phrase_ru = await _fresh_phrase(word.text, word.translation, level, avoid=word.phrase)
     word.regen_count = (word.regen_count or 0) + 1
     db.commit()
     db.refresh(word)
@@ -125,67 +167,62 @@ def delete_word(db: Session, word_id: int, owner_id: int):
 
 import random
 
-# Увеличивает счётчик повторений на 1.
-# Если достигли порога LEARNED_THRESHOLD — автоматически помечает как выученное.
-LEARNED_THRESHOLD = 5  # сколько повторений нужно для автоматического is_learned
 
+# «Повторить» из списка = успешный повтор: продвигаем слово по SRS вверх.
 def review_word(db: Session, word_id: int, owner_id: int):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
         return None
 
-    word.review_count += 1
-
-    # Автоматически помечаем выученным, если повторений достаточно.
-    if word.review_count >= LEARNED_THRESHOLD:
-        word.is_learned = True
-
+    _apply_srs(word, correct=True)
     db.commit()
     db.refresh(word)
     return word
 
 
-# Ответ в режиме викторины: correct=True → +1 повторение (как review),
-# correct=False → −1 (не ниже нуля). Счётчик управляет автоотметкой "выучено".
+# Ответ в режиме викторины: верно → повышаем SRS-уровень и интервал,
+# неверно → сброс на 0 и повтор сразу.
 def answer_word(db: Session, word_id: int, owner_id: int, correct: bool):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
         return None
 
-    if correct:
-        word.review_count += 1
-    else:
-        word.review_count = max(0, word.review_count - 1)
-
-    # Синхронизируем "выучено" со счётчиком повторений.
-    word.is_learned = word.review_count >= LEARNED_THRESHOLD
-
+    _apply_srs(word, correct=correct)
     db.commit()
     db.refresh(word)
     return word
 
 
-# Сбрасывает прогресс по слову: обнуляет счётчик повторений и снимает
-# отметку "выучено", чтобы учить слово заново с нуля.
+# Сбрасывает прогресс по слову: SRS-уровень на 0, снимает "выучено",
+# слово снова "к повтору" — учить с нуля.
 def reset_reviews(db: Session, word_id: int, owner_id: int):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
         return None
 
+    word.srs_level = 0
     word.review_count = 0
     word.is_learned = False
+    word.due_at = datetime.utcnow()
     db.commit()
     db.refresh(word)
     return word
 
 
-# Вручную переключает is_learned (True → False или False → True).
+# Вручную переключает is_learned. Синхронизируем SRS: выучено → максимальный
+# уровень и дальний повтор; вернуть в учёбу → уровень 0 и повтор сразу.
 def toggle_learned(db: Session, word_id: int, owner_id: int, is_learned: bool):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
         return None
 
     word.is_learned = is_learned
+    if is_learned:
+        word.srs_level = SRS_MAX_LEVEL
+        word.due_at = datetime.utcnow() + timedelta(days=SRS_INTERVALS_DAYS[SRS_MAX_LEVEL])
+    else:
+        word.srs_level = 0
+        word.due_at = datetime.utcnow()
     db.commit()
     db.refresh(word)
     return word
@@ -218,8 +255,17 @@ def get_words_stats(db: Session, owner_id: int):
         models.Word.is_learned == True
     ).count()
 
+    # Слова «к повтору»: невыученные, у которых срок повтора наступил (или не задан).
+    now = datetime.utcnow()
+    due = db.query(models.Word).filter(
+        models.Word.owner_id == owner_id,
+        models.Word.is_learned == False,
+        (models.Word.due_at == None) | (models.Word.due_at <= now)
+    ).count()
+
     return {
         "total": total,
         "learned": learned,
-        "remaining": total - learned
+        "remaining": total - learned,
+        "due": due
     }

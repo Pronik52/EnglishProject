@@ -24,7 +24,7 @@ def preview_phrase(
 
 
 @router.post("", response_model=schemas.WordResponse)
-def create_word(
+async def create_word(
     word: schemas.WordCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -39,7 +39,7 @@ def create_word(
                         f"({crud_words.FREE_DAILY_WORD_LIMIT} слов в день). "
                         f"Оформите Premium для безлимита.")
             )
-    return crud_words.create_word(db, word=word, owner_id=current_user.id, level=current_user.level)
+    return await crud_words.create_word(db, word=word, owner_id=current_user.id, level=current_user.level)
 
 
 @router.get("", response_model=schemas.PaginatedWordResponse)
@@ -131,6 +131,20 @@ async def regenerate_phrase(
                     f"Оформите Premium для безлимита.")
         )
     return word
+
+
+# Русский перевод фразы целиком (для показа в тренировке после ответа).
+# Лениво переводит и кеширует, если перевод ещё не сохранён.
+@router.get("/{word_id}/phrase-translation")
+def phrase_translation(
+    word_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    ru = crud_words.get_phrase_translation(db, word_id=word_id, owner_id=current_user.id)
+    if ru is None:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return {"phrase_ru": ru}
 
 
 # Ответ в викторине: +1 при верном выборе слова, −1 при ошибке.

@@ -45,6 +45,15 @@ if engine.dialect.name == "sqlite":
     if "regen_count" not in _word_cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE words ADD COLUMN regen_count INTEGER NOT NULL DEFAULT 0"))
+    if "phrase_ru" not in _word_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE words ADD COLUMN phrase_ru VARCHAR"))
+    if "srs_level" not in _word_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE words ADD COLUMN srs_level INTEGER NOT NULL DEFAULT 0"))
+    if "due_at" not in _word_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE words ADD COLUMN due_at DATETIME"))
 
 # Глобальный обработчик ошибок
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

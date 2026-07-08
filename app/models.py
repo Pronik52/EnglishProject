@@ -53,10 +53,19 @@ class Word(Base):
     # запоминалось в контексте, а не изолированно.
     phrase = Column(String, nullable=True)
 
+    # Русский перевод фразы целиком (для показа в тренировке после ответа).
+    # Заполняется при генерации фразы; для старых слов дозаполняется лениво.
+    phrase_ru = Column(String, nullable=True)
+
     is_learned = Column(Boolean, default=False, nullable=False, server_default="false")
 
-    # Сколько раз пользователь повторил слово (для будущей логики обучения).
+    # Сколько раз пользователь повторил слово (общий счётчик, для статистики).
     review_count = Column(Integer, default=0)
+
+    # SRS (интервальные повторы, система Лейтнера):
+    # srs_level — «коробка» 0..5, due_at — когда слово снова пора повторить.
+    srs_level = Column(Integer, nullable=False, default=0, server_default="0")
+    due_at = Column(DateTime, nullable=True)
 
     # Сколько раз для слова уже перегенерировали фразу («другая фраза»).
     # На бесплатном тарифе доступно FREE_REGEN_LIMIT генераций на слово,
