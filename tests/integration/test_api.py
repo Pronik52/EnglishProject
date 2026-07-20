@@ -72,10 +72,11 @@ def test_pagination(db_session, test_user):
     """Тестирование пагинации"""
 
     # Создаем несколько слов
-    headers = {"Authorization": f"Bearer {client.post(
-        '/api/v1/auth/login',
-        data={'username': test_user.email, 'password': 'secret'}
-    ).json()['access_token']}"}
+    login = client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "secret"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     for i in range(7):
         client.post(
@@ -111,10 +112,11 @@ def test_pagination(db_session, test_user):
 def test_search_and_filter(db_session, test_user):
     """Тестирование поиска и фильтрации"""
 
-    headers = {"Authorization": f"Bearer {client.post(
-        '/api/v1/auth/login',
-        data={'username': test_user.email, 'password': 'secret'}
-    ).json()['access_token']}"}
+    login = client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "secret"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     # Создаем слова для тестирования
     client.post("/api/v1/words", json={"text": "apple", "translation": "яблоко"}, headers=headers)
@@ -138,10 +140,11 @@ def test_search_and_filter(db_session, test_user):
 def test_error_handling(db_session, test_user):
     """Тестирование обработки ошибок"""
 
-    headers = {"Authorization": f"Bearer {client.post(
-        '/api/v1/auth/login',
-        data={'username': test_user.email, 'password': 'secret'}
-    ).json()['access_token']}"}
+    login = client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "secret"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     # Тестируем доступ к несуществующему слову
     response = client.get("/api/v1/words/999", headers=headers)

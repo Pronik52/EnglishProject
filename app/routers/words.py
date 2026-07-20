@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -26,6 +26,7 @@ def preview_phrase(
 @router.post("", response_model=schemas.WordResponse)
 async def create_word(
     word: schemas.WordCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -39,7 +40,24 @@ async def create_word(
                         f"({crud_words.FREE_DAILY_WORD_LIMIT} слов в день). "
                         f"Оформите Premium для безлимита.")
             )
-    return await crud_words.create_word(db, word=word, owner_id=current_user.id, level=current_user.level)
+    try:
+        created = await crud_words.create_word(
+            db, word=word, owner_id=current_user.id, level=current_user.level
+        )
+    except crud_words.DuplicateWordError:
+        raise HTTPException(
+            status_code=409,
+            detail=f"«{word.text}» с таким переводом уже есть в вашем словаре."
+        )
+    _schedule_image(background_tasks, created, current_user.id)
+    return created
+
+
+# Ставит дорисовку картинки в фон, если она этому слову нужна. Ответ уходит
+# пользователю сразу, картинка подтягивается позже опросом /{word_id}/image.
+def _schedule_image(background_tasks: BackgroundTasks, word: models.Word, owner_id: int):
+    if word is not None and word.image_status == "pending":
+        background_tasks.add_task(crud_words.generate_word_image, word.id, owner_id)
 
 
 @router.get("", response_model=schemas.PaginatedWordResponse)
@@ -114,6 +132,7 @@ def review_word(
 @router.patch("/{word_id}/regenerate-phrase", response_model=schemas.WordResponse)
 async def regenerate_phrase(
     word_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -130,7 +149,50 @@ async def regenerate_phrase(
                     f"({crud_words.FREE_REGEN_LIMIT} на слово). "
                     f"Оформите Premium для безлимита.")
         )
+    # Фраза сменилась — к новой сцене нужна новая картинка.
+    _schedule_image(background_tasks, word, current_user.id)
     return word
+
+
+# Подготовить сцену для слова, у которого её ещё нет (слова, заведённые до
+# появления картинок). Фронт дёргает этот адрес, когда открывает такое слово
+# в режиме описания, — тогда картинка догенерируется прямо в сессии.
+@router.post("/{word_id}/scene")
+def prepare_scene(
+    word_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    status, word = crud_words.ensure_scene(db, word_id=word_id, owner_id=current_user.id)
+    if status == "not_found":
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    if status == "disabled":
+        raise HTTPException(
+            status_code=409,
+            detail="Генерация картинок выключена в настройках сервера."
+        )
+    if status == "no_phrase":
+        raise HTTPException(
+            status_code=409,
+            detail="У слова нет фразы, из которой можно построить картинку."
+        )
+    _schedule_image(background_tasks, word, current_user.id)
+    return {"image_url": word.image_url, "image_status": word.image_status}
+
+
+# Состояние картинки к слову. Фронт опрашивает этот адрес, пока статус
+# "pending": ответ лёгкий, в отличие от полного объекта слова.
+@router.get("/{word_id}/image")
+def word_image(
+    word_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    word = crud_words.get_word(db, word_id=word_id, owner_id=current_user.id)
+    if word is None:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    return {"image_url": word.image_url, "image_status": word.image_status}
 
 
 # Русский перевод фразы целиком (для показа в тренировке после ответа).
@@ -161,6 +223,44 @@ def answer_word(
     if word is None:
         raise HTTPException(status_code=404, detail="Слово не найдено")
     return word
+
+
+# Главный режим: пользователь описал картинку своими словами, ИИ разбирает ответ.
+@router.post("/{word_id}/describe", response_model=schemas.DescribeResponse)
+async def describe_word(
+    word_id: int,
+    payload: schemas.DescribeRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    status, word, verdict = await crud_words.describe_word(
+        db, word_id=word_id, owner_id=current_user.id, answer=payload.text,
+        level=current_user.level, is_premium=current_user.is_premium
+    )
+    if status == "not_found":
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    if status == "no_scene":
+        raise HTTPException(
+            status_code=409,
+            detail="К этому слову ещё нет картинки — опишите её, когда она появится."
+        )
+    if status == "limit":
+        raise HTTPException(
+            status_code=402,
+            detail=(f"Дневной лимит проверок описания исчерпан "
+                    f"({crud_words.FREE_DAILY_DESCRIBE_LIMIT} в день). "
+                    f"Оформите Premium для безлимита.")
+        )
+
+    left = -1 if current_user.is_premium else max(
+        0, crud_words.FREE_DAILY_DESCRIBE_LIMIT
+        - crud_words.count_describes_today(db, current_user.id)
+    )
+    return {
+        "verdict": {**verdict, "correct": verdict["grade"] >= crud_words.PASS_GRADE},
+        "word": word,
+        "describes_left": left,
+    }
 
 
 # Сбросить прогресс повторений по слову (счётчик → 0, снять "выучено").

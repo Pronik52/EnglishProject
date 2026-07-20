@@ -1,11 +1,57 @@
+from __future__ import annotations
+
+import logging
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from .. import models, schemas
+from ..database import SessionLocal
 from ..phrases import generate_phrase, generate_variants, get_phrase
 from ..ai_generator import ai_generate_phrase
 from ..translator import translate_to_ru
+from ..image_generator import (
+    cached_url,
+    fallback_scene_prompt,
+    generate_scene_image,
+    is_enabled as images_enabled,
+)
+from ..evaluator import PASS_GRADE, evaluate_description
+
+logger = logging.getLogger(__name__)
+
+
+class DuplicateWordError(Exception):
+    """Слово с таким же переводом уже есть в словаре пользователя.
+
+    Появилась вместе с уникальным ключом словаря. Раньше ограничения не было,
+    и одно и то же слово можно было завести дважды; теперь ручное добавление
+    отвечает понятной ошибкой вместо падения на констрейнте базы.
+    """
+
+
+def find_duplicate(db: Session, owner_id: int, text: str, translation: str):
+    """Существующее слово с тем же значением или None.
+
+    Английское слово отсеиваем в SQL, а русский перевод сравниваем уже в
+    Python. Причина: lower() в SQLite работает только с латиницей и оставляет
+    «Яблоко» как есть, поэтому сравнение кириллицы средствами базы дало бы
+    разный результат на SQLite и PostgreSQL. Латиница таким свойством не
+    страдает, так что сужение выборки по text корректно на обеих базах.
+    """
+    target_text = (text or "").strip().lower()
+    target_translation = (translation or "").strip().lower()
+
+    candidates = db.query(models.Word).filter(
+        models.Word.owner_id == owner_id,
+        func.lower(models.Word.text) == target_text,
+    ).all()
+
+    for candidate in candidates:
+        if (candidate.translation or "").strip().lower() == target_translation:
+            return candidate
+    return None
 
 # Сколько слов в сутки можно добавить на бесплатном тарифе. Premium — без лимита.
 FREE_DAILY_WORD_LIMIT = 10
@@ -13,6 +59,11 @@ FREE_DAILY_WORD_LIMIT = 10
 # Сколько раз можно перегенерировать фразу для ОДНОГО слова на бесплатном тарифе.
 # Дальше кнопка «другая фраза» становится Premium-функцией. Premium — без лимита.
 FREE_REGEN_LIMIT = 5
+
+# Сколько описаний картинки в сутки проверяет ИИ на бесплатном тарифе.
+# Режим доступен всем — иначе главную механику никто не увидит и не оценит, —
+# но каждая проверка это вызов LLM, поэтому расход ограничен. Premium — без лимита.
+FREE_DAILY_DESCRIBE_LIMIT = 20
 
 # --- SRS (интервальные повторы, система Лейтнера) ---
 SRS_MAX_LEVEL = 5
@@ -31,6 +82,33 @@ def _apply_srs(word: models.Word, correct: bool):
     word.due_at = datetime.utcnow() + timedelta(days=SRS_INTERVALS_DAYS[word.srs_level])
     word.is_learned = word.srs_level >= SRS_MAX_LEVEL
     word.review_count = (word.review_count or 0) + 1
+
+
+# Записывает ответ в журнал повторов. Вызывается из всех режимов ответа,
+# чтобы история была полной — по ней потом строятся статистика и графики.
+# Саму запись не коммитим: это делает вызывающая функция вместе с изменением
+# слова, иначе журнал и прогресс могли бы разъехаться при ошибке.
+def _log_review(db: Session, word: models.Word, mode: str, correct: bool,
+                grade: int, answer_text: str = None) -> None:
+    db.add(models.ReviewLog(
+        user_id=word.owner_id,
+        word_id=word.id,
+        mode=mode,
+        correct=correct,
+        grade=grade,
+        answer_text=answer_text,
+        srs_level_after=word.srs_level or 0,
+    ))
+
+
+# Сколько описаний картинки пользователь проверил за текущие сутки (UTC).
+def count_describes_today(db: Session, user_id: int) -> int:
+    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return db.query(models.ReviewLog).filter(
+        models.ReviewLog.user_id == user_id,
+        models.ReviewLog.mode == "describe",
+        models.ReviewLog.created_at >= start
+    ).count()
 
 
 # Обнуляет счётчики генераций фразы у всех слов пользователя.
@@ -57,19 +135,90 @@ async def create_word(db: Session, word: schemas.WordCreate, owner_id: int, leve
     # Фраза и её перевод формируются вместе (ИИ, с офлайн-фолбэком) и сразу
     # сохраняются в базу — чтобы перевод хранился с момента создания слова.
     data = await get_phrase(word.text, word.translation, level=level)
+    scene = data.get("scene_prompt") or ""
+
+    # Картинку в этом запросе НЕ рисуем — она занимает секунды и заставила бы
+    # пользователя ждать. Исключение: если такая сцена уже кому-то выпадала,
+    # файл лежит на диске и достаётся мгновенно, бесплатно и без фона.
+    image_url = cached_url(scene) if scene else None
+    image_status = _initial_image_status(scene, image_url)
+
+    # Слово можно завести сразу выученным (например, при импорте уже знакомой
+    # лексики). Тогда синхронизируем SRS так же, как это делает toggle_learned:
+    # максимальный уровень и дальний повтор, иначе слово тут же вернулось бы
+    # в тренировку, несмотря на отметку.
+    is_learned = bool(getattr(word, "is_learned", False))
+    srs_level = SRS_MAX_LEVEL if is_learned else 0
+    due_at = datetime.utcnow() + timedelta(
+        days=SRS_INTERVALS_DAYS[SRS_MAX_LEVEL] if is_learned else 0
+    )
+
     db_word = models.Word(
         text=word.text,
         translation=word.translation,
         phrase=data["phrase_en"],
         phrase_ru=data["phrase_ru"],
-        srs_level=0,
-        due_at=datetime.utcnow(),  # новое слово сразу «к повтору»
+        scene_prompt=scene,
+        image_url=image_url,
+        image_status=image_status,
+        is_learned=is_learned,
+        srs_level=srs_level,
+        due_at=due_at,  # новое слово сразу «к повтору», выученное — нескоро
         owner_id=owner_id
     )
+    if find_duplicate(db, owner_id, word.text, word.translation):
+        raise DuplicateWordError(word.text)
+
     db.add(db_word)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Проверка выше могла разойтись с реальностью, если два одинаковых
+        # запроса пришли одновременно. Уникальный ключ ловит это в любом случае.
+        db.rollback()
+        raise DuplicateWordError(word.text)
     db.refresh(db_word)
     return db_word
+
+
+# Каким должен быть image_status у только что созданной/обновлённой фразы:
+# ready — картинка уже нашлась в кеше, pending — её пойдёт рисовать фон,
+# none — рисовать нечего или генерация выключена в настройках.
+def _initial_image_status(scene: str, image_url: str | None) -> str:
+    if image_url:
+        return "ready"
+    if scene and images_enabled():
+        return "pending"
+    return "none"
+
+
+# Фоновая дорисовка картинки к слову. Запускается через BackgroundTasks уже
+# ПОСЛЕ того, как ответ ушёл пользователю, поэтому работает со своей сессией:
+# сессия запроса к этому моменту закрыта.
+#
+# Никогда не бросает исключение — иначе упадёт фоновый воркер FastAPI, а для
+# пользователя это всего лишь отсутствующая картинка.
+async def generate_word_image(word_id: int, owner_id: int) -> None:
+    db = SessionLocal()
+    try:
+        word = get_word(db, word_id=word_id, owner_id=owner_id)
+        if word is None or not word.scene_prompt:
+            return
+
+        url = await generate_scene_image(word.scene_prompt)
+
+        # Перечитываем слово: пока рисовалась картинка, его могли удалить.
+        word = get_word(db, word_id=word_id, owner_id=owner_id)
+        if word is None:
+            return
+
+        word.image_url = url
+        word.image_status = "ready" if url else "failed"
+        db.commit()
+    except Exception:
+        logger.exception("Фоновая генерация картинки для слова %s не удалась", word_id)
+    finally:
+        db.close()
 
 
 # Свежая случайная фраза для слова + её русский перевод. Сначала ИИ (даёт разный
@@ -78,11 +227,12 @@ async def _fresh_phrase(word: str, translation: str, level: str, avoid: str):
     ai = await ai_generate_phrase(word, translation, level, avoid=avoid)
     if ai and ai["phrase_en"] and ai["phrase_en"] != avoid:
         en = ai["phrase_en"]
-        return en, (ai["phrase_ru"] or translate_to_ru(en))
+        scene = ai.get("scene_prompt") or fallback_scene_prompt(en, word)
+        return en, (ai["phrase_ru"] or translate_to_ru(en)), scene
     # Фолбэк: детерминированные варианты, берём отличный от текущего.
     variants = generate_variants(word, translation, level=level, count=3)
     en = next((v for v in variants if v != avoid), variants[0])
-    return en, translate_to_ru(en)
+    return en, translate_to_ru(en), fallback_scene_prompt(en, word)
 
 
 # Лениво возвращает русский перевод фразы слова, кешируя его в phrase_ru.
@@ -114,7 +264,13 @@ async def regenerate_phrase(db: Session, word_id: int, owner_id: int,
     if not is_premium and (word.regen_count or 0) >= FREE_REGEN_LIMIT:
         return "limit", word
 
-    word.phrase, word.phrase_ru = await _fresh_phrase(word.text, word.translation, level, avoid=word.phrase)
+    word.phrase, word.phrase_ru, word.scene_prompt = await _fresh_phrase(
+        word.text, word.translation, level, avoid=word.phrase
+    )
+    # Фраза сменилась — старая картинка ей больше не соответствует. Если новая
+    # сцена уже есть в кеше, подставляем сразу; иначе её дорисует фон.
+    word.image_url = cached_url(word.scene_prompt) if word.scene_prompt else None
+    word.image_status = _initial_image_status(word.scene_prompt, word.image_url)
     word.regen_count = (word.regen_count or 0) + 1
     db.commit()
     db.refresh(word)
@@ -175,6 +331,7 @@ def review_word(db: Session, word_id: int, owner_id: int):
         return None
 
     _apply_srs(word, correct=True)
+    _log_review(db, word, mode="review", correct=True, grade=3)
     db.commit()
     db.refresh(word)
     return word
@@ -182,15 +339,93 @@ def review_word(db: Session, word_id: int, owner_id: int):
 
 # Ответ в режиме викторины: верно → повышаем SRS-уровень и интервал,
 # неверно → сброс на 0 и повтор сразу.
-def answer_word(db: Session, word_id: int, owner_id: int, correct: bool):
+def answer_word(db: Session, word_id: int, owner_id: int, correct: bool,
+                mode: str = "choice", answer_text: str = None):
     word = get_word(db, word_id=word_id, owner_id=owner_id)
     if word is None:
         return None
 
     _apply_srs(word, correct=correct)
+    _log_review(db, word, mode=mode, correct=correct,
+                grade=3 if correct else 0, answer_text=answer_text)
     db.commit()
     db.refresh(word)
     return word
+
+
+# Готовит сцену для слова, у которого её ещё нет.
+#
+# Нужна для слов, заведённых до появления картинок: у них есть фраза, но нет
+# ни scene_prompt, ни изображения. Описание сцены выводим из самой фразы —
+# это бесплатно и мгновенно, лишний вызов ИИ не нужен.
+#
+# Возвращает (status, word):
+#   "not_found" — слова нет / чужое;
+#   "disabled"  — генерация картинок выключена настройкой;
+#   "no_phrase" — у слова нет даже фразы, рисовать нечего;
+#   "pending"   — картинку пошёл рисовать фон;
+#   "ready"     — картинка уже есть (нашлась в кеше или была раньше).
+def ensure_scene(db: Session, word_id: int, owner_id: int):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return "not_found", None
+    if word.image_url:
+        return "ready", word
+    if word.image_status == "pending":
+        return "pending", word
+    if not images_enabled():
+        return "disabled", word
+
+    if not word.scene_prompt:
+        word.scene_prompt = fallback_scene_prompt(word.phrase or "", word.text)
+    if not word.scene_prompt:
+        return "no_phrase", word
+
+    word.image_url = cached_url(word.scene_prompt)
+    word.image_status = _initial_image_status(word.scene_prompt, word.image_url)
+    db.commit()
+    db.refresh(word)
+    return ("ready" if word.image_url else "pending"), word
+
+
+# Главный режим: пользователь описал картинку своими словами.
+# Возвращает кортеж (status, word, verdict):
+#   "not_found" — слова нет / чужое;
+#   "no_scene"  — к слову нет картинки, описывать нечего;
+#   "limit"     — исчерпан дневной лимит проверок на бесплатном тарифе;
+#   "ok"        — ответ разобран, verdict содержит оценку и подсказки.
+#
+# Оценка мягкая: повтор засчитывается за уместное употребление слова и
+# переданный смысл сцены. Замечания по грамматике попадают в verdict и
+# показываются пользователю, но на SRS не влияют.
+async def describe_word(db: Session, word_id: int, owner_id: int, answer: str,
+                        level: str = "A1", is_premium: bool = False):
+    word = get_word(db, word_id=word_id, owner_id=owner_id)
+    if word is None:
+        return "not_found", None, None
+
+    if not word.scene_prompt:
+        return "no_scene", word, None
+
+    if not is_premium and count_describes_today(db, owner_id) >= FREE_DAILY_DESCRIBE_LIMIT:
+        return "limit", word, None
+
+    verdict = await evaluate_description(
+        word=word.text,
+        translation=word.translation,
+        phrase=word.phrase or "",
+        scene=word.scene_prompt,
+        level=level,
+        answer=answer,
+    )
+
+    correct = verdict["grade"] >= PASS_GRADE
+    _apply_srs(word, correct=correct)
+    _log_review(db, word, mode="describe", correct=correct,
+                grade=verdict["grade"], answer_text=answer)
+    db.commit()
+    db.refresh(word)
+    return "ok", word, verdict
 
 
 # Сбрасывает прогресс по слову: SRS-уровень на 0, снимает "выучено",

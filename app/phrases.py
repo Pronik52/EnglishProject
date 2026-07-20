@@ -16,6 +16,7 @@ import random
 from typing import List, Optional
 
 from .ai_generator import ai_generate_phrase
+from .image_generator import fallback_scene_prompt
 from .translator import translate_to_ru
 
 
@@ -218,13 +219,14 @@ def generate_phrase(word: str, translation: Optional[str] = None, level: str = "
 
 
 async def get_phrase(word: str, translation: str, level: str = "A1") -> dict:
-    """Английская фраза со словом + её русский перевод.
+    """Английская фраза со словом, её русский перевод и описание сцены.
 
     Сначала пробуем ИИ (Groq), при недоступности — детерминированный оффлайн
     генератор выше. Перевод при необходимости дозаполняем переводчиком.
-    Всегда возвращает валидный dict {"phrase_en": ..., "phrase_ru": ...};
-    в крайнем случае phrase_ru="" (ни отсутствие сети, ни падение сервисов
-    не роняют приложение).
+    Всегда возвращает валидный dict с ключами phrase_en, phrase_ru и
+    scene_prompt; в крайнем случае phrase_ru="" (ни отсутствие сети, ни падение
+    сервисов не роняют приложение). scene_prompt — описание картинки к фразе;
+    если ИИ его не дал, собираем из самой фразы.
     """
     result = await ai_generate_phrase(word, translation, level)
 
@@ -232,9 +234,14 @@ async def get_phrase(word: str, translation: str, level: str = "A1") -> dict:
         phrase_en = result["phrase_en"]
         # ИИ дал перевод — берём его; иначе переводим фразу отдельно.
         phrase_ru = result["phrase_ru"] or translate_to_ru(phrase_en)
-        return {"phrase_en": phrase_en, "phrase_ru": phrase_ru}
+        scene = result.get("scene_prompt") or fallback_scene_prompt(phrase_en, word)
+        return {"phrase_en": phrase_en, "phrase_ru": phrase_ru, "scene_prompt": scene}
 
     # Фолбэк: ИИ недоступен — оффлайн-генерация + перевод фразы.
     phrase_en = generate_phrase(word, translation, level=level)
     phrase_ru = translate_to_ru(phrase_en)
-    return {"phrase_en": phrase_en, "phrase_ru": phrase_ru}
+    return {
+        "phrase_en": phrase_en,
+        "phrase_ru": phrase_ru,
+        "scene_prompt": fallback_scene_prompt(phrase_en, word),
+    }

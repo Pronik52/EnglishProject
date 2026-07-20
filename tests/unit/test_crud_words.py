@@ -2,13 +2,14 @@ import pytest
 from app.crud.words import (
     create_word, get_word, get_words_by_owner, delete_word,
     review_word, toggle_learned, get_random_unlearned_word,
-    get_words_stats, LEARNED_THRESHOLD
+    get_words_stats, SRS_MAX_LEVEL
 )
 from app import schemas
+from tests.conftest import run_async
 
 def test_create_word(db_session, test_user):
     word_data = schemas.WordCreate(text="test", translation="тест")
-    word = create_word(db_session, word_data, test_user.id)
+    word = run_async(create_word(db_session, word_data, test_user.id))
 
     assert word.text == "test"
     assert word.translation == "тест"
@@ -42,7 +43,7 @@ def test_get_word_wrong_owner(db_session, test_word):
 def test_get_words_by_owner(db_session, test_user, test_word):
     # Создаем второе слово
     word2 = schemas.WordCreate(text="world", translation="мир")
-    create_word(db_session, word2, test_user.id)
+    run_async(create_word(db_session, word2, test_user.id))
 
     result = get_words_by_owner(db_session, test_user.id)
     assert len(result["items"]) == 2
@@ -52,7 +53,7 @@ def test_get_words_by_owner_pagination(db_session, test_user):
     # Создаем несколько слов
     for i in range(5):
         word_data = schemas.WordCreate(text=f"word{i}", translation=f"слово{i}")
-        create_word(db_session, word_data, test_user.id)
+        run_async(create_word(db_session, word_data, test_user.id))
 
     # Тестируем пагинацию
     result1 = get_words_by_owner(db_session, test_user.id, skip=0, limit=3)
@@ -67,8 +68,8 @@ def test_get_words_by_owner_filter(db_session, test_user):
     # Создаем слова с разными статусами
     word1 = schemas.WordCreate(text="learned", translation="выученное", is_learned=True)
     word2 = schemas.WordCreate(text="unlearned", translation="невыученное", is_learned=False)
-    create_word(db_session, word1, test_user.id)
-    create_word(db_session, word2, test_user.id)
+    run_async(create_word(db_session, word1, test_user.id))
+    run_async(create_word(db_session, word2, test_user.id))
 
     # Фильтр по выученным словам
     result = get_words_by_owner(db_session, test_user.id, is_learned=True)
@@ -84,8 +85,8 @@ def test_get_words_by_owner_search(db_session, test_user):
     # Создаем слова для поиска
     word1 = schemas.WordCreate(text="apple", translation="яблоко")
     word2 = schemas.WordCreate(text="banana", translation="банан")
-    create_word(db_session, word1, test_user.id)
-    create_word(db_session, word2, test_user.id)
+    run_async(create_word(db_session, word1, test_user.id))
+    run_async(create_word(db_session, word2, test_user.id))
 
     # Поиск по тексту
     result = get_words_by_owner(db_session, test_user.id, search="app")
@@ -111,14 +112,14 @@ def test_delete_word_not_found(db_session, test_user):
 
 def test_review_word(db_session, test_word):
     # Повторяем слово несколько раз
-    for _ in range(LEARNED_THRESHOLD - 1):
+    for _ in range(SRS_MAX_LEVEL - 1):
         word = review_word(db_session, test_word.id, test_word.owner_id)
         assert word.review_count == _ + 1
         assert word.is_learned == False
 
     # Последний повтор - должно пометиться как выученное
     word = review_word(db_session, test_word.id, test_word.owner_id)
-    assert word.review_count == LEARNED_THRESHOLD
+    assert word.review_count == SRS_MAX_LEVEL
     assert word.is_learned == True
 
 def test_review_word_not_found(db_session, test_user):
@@ -142,7 +143,7 @@ def test_get_random_unlearned_word(db_session, test_user):
     # Создаем несколько невыученных слов
     for i in range(3):
         word_data = schemas.WordCreate(text=f"word{i}", translation=f"слово{i}")
-        create_word(db_session, word_data, test_user.id)
+        run_async(create_word(db_session, word_data, test_user.id))
 
     word = get_random_unlearned_word(db_session, test_user.id)
     assert word is not None
@@ -151,7 +152,7 @@ def test_get_random_unlearned_word(db_session, test_user):
 def test_get_random_unlearned_word_none(db_session, test_user):
     # Создаем выученное слово
     word_data = schemas.WordCreate(text="learned", translation="выученное", is_learned=True)
-    create_word(db_session, word_data, test_user.id)
+    run_async(create_word(db_session, word_data, test_user.id))
 
     word = get_random_unlearned_word(db_session, test_user.id)
     assert word is None
@@ -160,8 +161,8 @@ def test_get_words_stats(db_session, test_user):
     # Создаем слова с разными статусами
     word1 = schemas.WordCreate(text="learned", translation="выученное", is_learned=True)
     word2 = schemas.WordCreate(text="unlearned", translation="невыученное", is_learned=False)
-    create_word(db_session, word1, test_user.id)
-    create_word(db_session, word2, test_user.id)
+    run_async(create_word(db_session, word1, test_user.id))
+    run_async(create_word(db_session, word2, test_user.id))
 
     stats = get_words_stats(db_session, test_user.id)
     assert stats["total"] == 2

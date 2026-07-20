@@ -61,8 +61,12 @@ def _build_prompt(word: str, translation: str, level: str, avoid: str = "") -> s
         f"- is set in the context of {scenario};\n"
         f"{avoid_line}"
         f"and its precise Russian translation.\n\n"
+        f"Also describe the situation of the phrase as a picture: one English\n"
+        f"sentence naming who is in the scene, what they are doing and where.\n"
+        f"It must be concrete and drawable (no abstractions, no text in the\n"
+        f"image) — it will be used as a prompt for an image model.\n\n"
         f"Respond with ONLY a JSON object, no explanations, in this exact shape:\n"
-        f'{{"phrase_en": "...", "phrase_ru": "..."}}'
+        f'{{"phrase_en": "...", "phrase_ru": "...", "scene_prompt": "..."}}'
     )
 
 
@@ -72,11 +76,13 @@ async def ai_generate_phrase(word: str, translation: str, level: str = "A1",
 
     avoid — фраза, которую нужно НЕ повторять (для кнопки «другая фраза»).
 
-    Возвращает {"phrase_en": str, "phrase_ru": str} при успехе, иначе None.
+    Возвращает {"phrase_en": str, "phrase_ru": str, "scene_prompt": str} при
+    успехе, иначе None.
     Никогда не бросает исключение: любая ошибка логируется как warning → None.
 
-    Особый случай: если ИИ вернул phrase_en, но phrase_ru пустой/отсутствует —
-    это НЕ ошибка. Возвращаем phrase_ru="" (перевод дозаполнит слой выше).
+    Особый случай: если ИИ вернул phrase_en, но phrase_ru или scene_prompt
+    пустые/отсутствуют — это НЕ ошибка. Возвращаем "" (перевод дозаполнит слой
+    выше, а описание сцены соберётся из самой фразы).
     """
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -109,9 +115,10 @@ async def ai_generate_phrase(word: str, translation: str, level: str = "A1",
             logger.warning("В ответе Groq нет поля phrase_en (слово '%s').", word)
             return None
 
-        # phrase_ru может отсутствовать — это допустимо, вернём "".
+        # phrase_ru и scene_prompt могут отсутствовать — это допустимо, вернём "".
         phrase_ru = (data.get("phrase_ru") or "").strip()
-        return {"phrase_en": phrase_en, "phrase_ru": phrase_ru}
+        scene_prompt = (data.get("scene_prompt") or "").strip()
+        return {"phrase_en": phrase_en, "phrase_ru": phrase_ru, "scene_prompt": scene_prompt}
 
     except json.JSONDecodeError as e:
         logger.warning("Не удалось распарсить JSON от Groq (слово '%s'): %s", word, e)

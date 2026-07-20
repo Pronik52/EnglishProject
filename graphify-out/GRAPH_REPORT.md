@@ -1,16 +1,16 @@
-# Graph Report - EnglishProject  (2026-07-08)
+# Graph Report - EnglishProject  (2026-07-20)
 
 ## Corpus Check
-- 38 files · ~22,758 words
+- 63 files · ~55,135 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 284 nodes · 402 edges · 63 communities (21 shown, 42 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
+- 590 nodes · 931 edges · 92 communities (38 shown, 54 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 20 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `23cb7333`
+- Built from commit: `c52a83d5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -25,10 +25,12 @@
 - [[_COMMUNITY_Alembic Migration Env|Alembic Migration Env]]
 - [[_COMMUNITY_Test Fixtures|Test Fixtures]]
 - [[_COMMUNITY_Graph Analysis Outputs|Graph Analysis Outputs]]
+- [[_COMMUNITY_Migration Initial Tables|Migration: Initial Tables]]
 - [[_COMMUNITY_Token Reduction Benchmark|Token Reduction Benchmark]]
 - [[_COMMUNITY_Cluster-Only Rerun|Cluster-Only Rerun]]
 - [[_COMMUNITY_SQLAlchemy Session|SQLAlchemy Session]]
 - [[_COMMUNITY_SQLAlchemy Session|SQLAlchemy Session]]
+- [[_COMMUNITY_test_auth.py|test_auth.py]]
 - [[_COMMUNITY_SQLAlchemy Session|SQLAlchemy Session]]
 - [[_COMMUNITY_SQLAlchemy Session|SQLAlchemy Session]]
 - [[_COMMUNITY_graphify reference add a URL and watch a folder|graphify reference: add a URL and watch a folder]]
@@ -72,75 +74,106 @@
 - [[_COMMUNITY_graph.json Shrink Guard (479)|graph.json Shrink Guard (#479)]]
 - [[_COMMUNITY_graphify Skill Trigger (graphify)|graphify Skill Trigger (/graphify)]]
 - [[_COMMUNITY_graphify Codebase-Query Convention|graphify Codebase-Query Convention]]
+- [[_COMMUNITY_graphify reference extra exports and benchmark|graphify reference: extra exports and benchmark]]
+- [[_COMMUNITY_AGENTS|AGENTS.md]]
+- [[_COMMUNITY_graphify reference query, path, explain|graphify reference: query, path, explain]]
+- [[_COMMUNITY_a3f1c9d24b70_scene_images_and_catchup.py|a3f1c9d24b70_scene_images_and_catchup.py]]
+- [[_COMMUNITY_graphify reference add a URL and watch a folder|graphify reference: add a URL and watch a folder]]
+- [[_COMMUNITY_graphify reference commit hook and native CLAUDE.md integration|graphify reference: commit hook and native CLAUDE.md integration]]
+- [[_COMMUNITY_graphify reference incremental update and cluster-only|graphify reference: incremental update and cluster-only]]
+- [[_COMMUNITY_graphify reference GitHub clone and cross-repo merge|graphify reference: GitHub clone and cross-repo merge]]
+- [[_COMMUNITY_graphify reference transcribe video and audio|graphify reference: transcribe video and audio]]
+- [[_COMMUNITY_extraction-spec|extraction-spec.md]]
+- [[_COMMUNITY_models.py|models.py]]
+- [[_COMMUNITY_Запуск EnglishProject локально|Запуск EnglishProject локально]]
+- [[_COMMUNITY_c4a8e91f3d25_word_catalog.py|c4a8e91f3d25_word_catalog.py]]
+- [[_COMMUNITY_d9b31c7a0e46_words_unique_key.py|d9b31c7a0e46_words_unique_key.py]]
+- [[_COMMUNITY_DuplicateWordError|DuplicateWordError]]
+- [[_COMMUNITY_catalog|catalog]]
+- [[_COMMUNITY_test_other_meaning_of_same_word_is_not_marked|test_other_meaning_of_same_word_is_not_marked]]
+- [[_COMMUNITY_test_bulk_added_word_joins_normal_learning_flow|test_bulk_added_word_joins_normal_learning_flow]]
+- [[_COMMUNITY_test_database_rejects_duplicate_even_past_the_code|test_database_rejects_duplicate_even_past_the_code]]
+- [[_COMMUNITY_test_duplicate_check_handles_cyrillic_case|test_duplicate_check_handles_cyrillic_case]]
+- [[_COMMUNITY_test_no_n_plus_one_queries|test_no_n_plus_one_queries]]
+- [[_COMMUNITY_test_images.py|test_images.py]]
+- [[_COMMUNITY_image_generator.py|image_generator.py]]
+- [[_COMMUNITY_test_api.py|test_api.py]]
+- [[_COMMUNITY_users.py|users.py]]
+- [[_COMMUNITY_test_manually_added_word_is_also_marked|test_manually_added_word_is_also_marked]]
+- [[_COMMUNITY_test_limit_counter_is_shared_with_manual_adding|test_limit_counter_is_shared_with_manual_adding]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `User` - 24 edges
-2. `create_word()` - 13 edges
-3. `get_word()` - 13 edges
-4. `What You Must Do When Invoked` - 12 edges
-5. `/graphify` - 10 edges
-6. `generate_variants()` - 8 edges
-7. `graphify reference: extra exports and benchmark` - 8 edges
-8. `ai_generate_phrase()` - 7 edges
-9. `get_phrase()` - 7 edges
-10. `translate_to_ru()` - 7 edges
+1. `run_async()` - 34 edges
+2. `User` - 32 edges
+3. `create_word()` - 31 edges
+4. `get_word()` - 20 edges
+5. `describe_word()` - 16 edges
+6. `_headers()` - 13 edges
+7. `_word_with_scene()` - 13 edges
+8. `What You Must Do When Invoked` - 12 edges
+9. `What You Must Do When Invoked` - 12 edges
+10. `ensure_scene()` - 11 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `test_get_word()` --calls--> `get_word()`  [EXTRACTED]
-  tests/unit/test_crud_words.py → app/crud/words.py
-- `test_get_word_not_found()` --calls--> `get_word()`  [EXTRACTED]
-  tests/unit/test_crud_words.py → app/crud/words.py
-- `test_get_word_wrong_owner()` --calls--> `get_word()`  [EXTRACTED]
-  tests/unit/test_crud_words.py → app/crud/words.py
-- `test_delete_word_not_found()` --calls--> `delete_word()`  [EXTRACTED]
-  tests/unit/test_crud_words.py → app/crud/words.py
-- `test_review_word()` --calls--> `review_word()`  [EXTRACTED]
-  tests/unit/test_crud_words.py → app/crud/words.py
+- `test_duplicate_check_handles_cyrillic_case()` --calls--> `find_duplicate()`  [EXTRACTED]
+  tests/unit/test_catalog.py → app/crud/words.py
+- `test_limit_counter_is_shared_with_manual_adding()` --calls--> `create_word()`  [EXTRACTED]
+  tests/unit/test_catalog.py → app/crud/words.py
+- `test_manually_added_word_blocks_catalog_duplicate()` --calls--> `create_word()`  [EXTRACTED]
+  tests/unit/test_catalog.py → app/crud/words.py
+- `test_manually_added_word_is_also_marked()` --calls--> `create_word()`  [EXTRACTED]
+  tests/unit/test_catalog.py → app/crud/words.py
+- `test_word_without_scene_cannot_be_described()` --calls--> `create_word()`  [EXTRACTED]
+  tests/unit/test_describe.py → app/crud/words.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (63 total, 42 thin omitted)
+## Communities (92 total, 54 thin omitted)
 
 ### Community 0 - "Graphify Pipeline & Exports"
 Cohesion: 0.29
 Nodes (5): Architecture, Commands, graphify, Project overview, Testing
 
 ### Community 1 - "Word CRUD & Tests"
-Cohesion: 0.10
-Nodes (38): ai_generate_phrase(), _build_prompt(), Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-, Промпт, требующий строго JSON с английской фразой и её переводом.      scenario, Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф, answer_word(), _apply_srs(), count_words_created_today() (+30 more)
+Cohesion: 0.06
+Nodes (66): ai_generate_phrase(), _build_prompt(), Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-, Промпт, требующий строго JSON с английской фразой и её переводом.      scenario, Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф, count_words_created_today(), create_word(), delete_word() (+58 more)
 
 ### Community 2 - "DB Models & Routers"
-Cohesion: 0.35
-Nodes (16): User, answer_word(), create_word(), get_random_word(), get_stats(), phrase_translation(), preview_phrase(), Session (+8 more)
-
-### Community 3 - "Authentication & Users"
-Cohesion: 0.21
-Nodes (13): authenticate_user(), get_user_by_email(), Session, set_premium(), update_level(), activate_premium(), billing_status(), deactivate_premium() (+5 more)
+Cohesion: 0.13
+Nodes (36): User, add_catalog_words(), _default_level(), Session, Каталог готовых слов: уровни, категории, выдача и массовое добавление.  Все эндп, Уровни, для которых наполнен каталог., Активные категории с числом доступных слов., Каталог с фильтрами и пометкой «уже в словаре».      Уровень по умолчанию — из п (+28 more)
 
 ### Community 4 - "App Entry & Error Handling"
-Cohesion: 0.16
-Nodes (19): create_word(), get_random_unlearned_word(), get_words_by_owner(), test_create_word(), test_delete_word_not_found(), test_get_random_unlearned_word(), test_get_random_unlearned_word_none(), test_get_word() (+11 more)
+Cohesion: 0.18
+Nodes (22): answer_word(), _apply_srs(), count_describes_today(), describe_word(), _log_review(), Word, run_async(), Тесты режима «опиши картинку»: мягкая оценка, лимит, журнал повторов. (+14 more)
 
 ### Community 5 - "Pydantic Schemas"
-Cohesion: 0.15
-Nodes (16): create_user(), AnswerRequest, BillingStatus, Config, LevelUpdate, PaginatedWordResponse, PhrasePreviewRequest, PhrasePreviewResponse (+8 more)
+Cohesion: 0.09
+Nodes (30): create_user(), login(), Session, register(), update_level(), AnswerRequest, BillingStatus, CatalogAddRequest (+22 more)
 
 ### Community 6 - "API Integration Tests"
-Cohesion: 0.22
-Nodes (8): Тестирование поиска и фильтрации, Тестирование обработки ошибок, Тестирование пагинации, Тестирование полного потока работы с API, test_api_flow(), test_error_handling(), test_pagination(), test_search_and_filter()
+Cohesion: 0.08
+Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native AGENTS.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
 ### Community 7 - "Alembic Migration Env"
-Cohesion: 0.25
-Nodes (6): Word, Base, Режим offline: генерирует SQL-скрипт без подключения к БД., Режим online: подключается к БД и применяет миграции напрямую., run_migrations_offline(), run_migrations_online()
+Cohesion: 0.07
+Nodes (13): get_db(), AppException, http_exception_handler(), validation_exception_handler(), log_requests(), read_current_user(), activate_premium(), billing_status() (+5 more)
 
 ### Community 8 - "Test Fixtures"
-Cohesion: 0.09
-Nodes (13): get_db(), AppException, http_exception_handler(), validation_exception_handler(), log_requests(), login(), Session, read_current_user() (+5 more)
+Cohesion: 0.12
+Nodes (17): _headers(), Даже если клиент пришлёт чужой owner_id, слово уйдёт текущему пользователю., Новое поведение: полный дубль теперь не создаётся. Раньше ограничения     не был, Каталог наполнен до C2, поэтому продвинутый профиль получает свой уровень,     а, Если каталог для уровня из профиля не наполнен, выдача не должна     оказаться п, test_advanced_profile_level_gets_its_own_words(), test_batch_size_is_limited(), test_catalog_uses_profile_level_by_default() (+9 more)
+
+### Community 11 - "Migration: Initial Tables"
+Cohesion: 0.22
+Nodes (13): main(), Session, Наполнение каталога слов из JSON-файла.  Запуск:     python -m app.seed_catalog, Загружает категории и слова. Возвращает отчёт о том, что изменилось., Ошибка в данных файла. Импорт прерывается до записи в базу., Проверяет структуру файла целиком ДО записи в базу.      Валидируем всё сразу и, seed(), SeedError (+5 more)
 
 ### Community 16 - "SQLAlchemy Session"
 Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
+
+### Community 17 - "test_auth.py"
+Cohesion: 0.33
+Nodes (8): _build_prompt(), evaluate_description(), _offline_verdict(), Проверка описания картинки, которое написал пользователь.  Это ядро ассоциативно, Разбор описания. Всегда возвращает валидный словарь.      Ключи: grade (0..3), u, Есть ли целевое слово в ответе — грубо, по корню.      Отрезаем у слова хвост в, Проверка без ИИ: слово употреблено и написано хотя бы несколько слов.      Работ, _word_is_used()
 
 ### Community 18 - "SQLAlchemy Session"
 Cohesion: 0.22
@@ -162,25 +195,89 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
+### Community 63 - "graphify reference: extra exports and benchmark"
+Cohesion: 0.22
+Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
+
+### Community 64 - "AGENTS.md"
+Cohesion: 0.29
+Nodes (5): Architecture, Commands, graphify, Project overview, Testing
+
+### Community 65 - "graphify reference: query, path, explain"
+Cohesion: 0.33
+Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
+
+### Community 66 - "a3f1c9d24b70_scene_images_and_catchup.py"
+Cohesion: 0.47
+Nodes (5): downgrade(), _existing(), scene images + догоняем колонки, добавленные в модели без миграций  Revision ID:, Downgrade schema.      Откатываем ТОЛЬКО поля картинки. Остальные колонки этой м, upgrade()
+
+### Community 67 - "graphify reference: add a URL and watch a folder"
+Cohesion: 0.50
+Nodes (3): For /graphify add, For --watch, graphify reference: add a URL and watch a folder
+
+### Community 68 - "graphify reference: commit hook and native CLAUDE.md integration"
+Cohesion: 0.50
+Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
+
+### Community 69 - "graphify reference: incremental update and cluster-only"
+Cohesion: 0.50
+Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
+
+### Community 73 - "models.py"
+Cohesion: 0.09
+Nodes (26): add_words_to_dictionary(), _build_word(), _is_owned(), list_catalog_words(), list_categories(), list_levels(), _owned_keys(), Session (+18 more)
+
+### Community 75 - "Запуск EnglishProject локально"
+Cohesion: 0.18
+Nodes (10): 1. Предполётная проверка, 2. Свободен ли порт, 3. Старт, 4. Дождись готовности и проверь, 5. Состояние базы — обязательный шаг, 6. Что сказать пользователю, 7. Остановка, Запуск EnglishProject локально (+2 more)
+
+### Community 76 - "c4a8e91f3d25_word_catalog.py"
+Cohesion: 0.80
+Nodes (4): _columns(), downgrade(), _tables(), upgrade()
+
+### Community 77 - "d9b31c7a0e46_words_unique_key.py"
+Cohesion: 0.83
+Nodes (3): downgrade(), _indexes(), upgrade()
+
+### Community 78 - "DuplicateWordError"
+Cohesion: 0.67
+Nodes (3): DuplicateWordError, Слово с таким же переводом уже есть в словаре пользователя.      Появилась вме, Exception
+
+### Community 86 - "test_images.py"
+Cohesion: 0.10
+Nodes (15): ensure_scene(), Тесты картинок-сцен: ключ кеша, выключенный провайдер, статусы у слова., Слова, заведённые до появления картинок, должны получать сцену     из своей фраз, Pollinations принимает только знаковый 32-битный seed и на большие     значения, Падение провайдера обязано превращаться в None, а не в исключение:     иначе пол, scene_prompt нужен для будущего режима «опиши картинку», поэтому он     сохраняе, test_empty_prompt_generates_nothing(), test_ensure_scene_backfills_old_word() (+7 more)
+
+### Community 87 - "image_generator.py"
+Cohesion: 0.20
+Nodes (15): cached_url(), _fetch_cloudflare(), _fetch_pollinations(), _full_prompt(), generate_scene_image(), is_enabled(), _provider(), Генерация картинки-сцены к фразе и её хранение на диске.  Зачем: исходная задумк (+7 more)
+
+### Community 88 - "test_api.py"
+Cohesion: 0.22
+Nodes (8): Тестирование поиска и фильтрации, Тестирование обработки ошибок, Тестирование пагинации, Тестирование полного потока работы с API, test_api_flow(), test_error_handling(), test_pagination(), test_search_and_filter()
+
+### Community 89 - "users.py"
+Cohesion: 0.52
+Nodes (6): authenticate_user(), get_user_by_email(), Session, set_premium(), update_level(), verify_password()
+
 ## Knowledge Gaps
-- **78 isolated node(s):** `Config`, `graphify`, `Usage`, `What graphify is for`, `Step 0 - GitHub repos and multi-path merge (only if a URL or several paths)` (+73 more)
+- **134 isolated node(s):** `Config`, `Usage`, `What graphify is for`, `Step 0 - GitHub repos and multi-path merge (only if a URL or several paths)`, `Step 1 - Ensure graphify is installed` (+129 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `create_word()` connect `App Entry & Error Handling` to `Word CRUD & Tests`, `Pydantic Schemas`, `Alembic Migration Env`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
-- **Why does `User` connect `DB Models & Routers` to `Test Fixtures`, `Authentication & Users`, `Pydantic Schemas`, `Alembic Migration Env`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `WordCreate` connect `Pydantic Schemas` to `DB Models & Routers`, `App Entry & Error Handling`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Are the 13 inferred relationships involving `HTTPException` (e.g. with `login()` and `register()`) actually correct?**
-  _`HTTPException` has 13 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `create_word()` connect `Word CRUD & Tests` to `Authentication & Users`, `App Entry & Error Handling`, `Pydantic Schemas`, `DuplicateWordError`, `test_images.py`, `image_generator.py`, `test_manually_added_word_is_also_marked`, `test_limit_counter_is_shared_with_manual_adding`?**
+  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Why does `WordCreate` connect `Pydantic Schemas` to `Word CRUD & Tests`, `DB Models & Routers`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `run_async()` connect `App Entry & Error Handling` to `Word CRUD & Tests`, `Authentication & Users`, `Alembic Migration Env`, `test_images.py`, `test_manually_added_word_is_also_marked`, `test_limit_counter_is_shared_with_manual_adding`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **What connects `Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-`, `Промпт, требующий строго JSON с английской фразой и её переводом.      scenario`, `Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф` to the rest of the system?**
-  _104 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _218 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Word CRUD & Tests` be split into smaller, more focused modules?**
-  _Cohesion score 0.0975609756097561 - nodes in this community are weakly interconnected._
-- **Should `Test Fixtures` be split into smaller, more focused modules?**
-  _Cohesion score 0.09401709401709402 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0635814889336016 - nodes in this community are weakly interconnected._
+- **Should `DB Models & Routers` be split into smaller, more focused modules?**
+  _Cohesion score 0.12692307692307692 - nodes in this community are weakly interconnected._
+- **Should `Authentication & Users` be split into smaller, more focused modules?**
+  _Cohesion score 0.08695652173913043 - nodes in this community are weakly interconnected._

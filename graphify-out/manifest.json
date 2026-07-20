@@ -30,8 +30,8 @@
     "semantic_hash": ""
   },
   "app/crud/words.py": {
-    "mtime": 1783479807.8113093,
-    "ast_hash": "e4b2ce0a97ca6bf49270e2feb1452418",
+    "mtime": 1784555112.894321,
+    "ast_hash": "cf430247cb5dbc3ceda0c094639e9427",
     "semantic_hash": ""
   },
   "app/database.py": {
@@ -45,13 +45,13 @@
     "semantic_hash": ""
   },
   "app/main.py": {
-    "mtime": 1783479734.1194131,
-    "ast_hash": "57da36a8e3c3b5acfa4ac8ca394afbe1",
+    "mtime": 1784554744.9864726,
+    "ast_hash": "08b51a612f3421185f72c1913da1f3c0",
     "semantic_hash": ""
   },
   "app/models.py": {
-    "mtime": 1783479726.868276,
-    "ast_hash": "fc56e6473349e1fd4b76ca9148f24b18",
+    "mtime": 1784554502.3102486,
+    "ast_hash": "7258b04ffa21026dee4cf9523e7d68d8",
     "semantic_hash": ""
   },
   "app/routers/__init__.py": {
@@ -65,13 +65,13 @@
     "semantic_hash": ""
   },
   "app/routers/words.py": {
-    "mtime": 1783479836.6143115,
-    "ast_hash": "911a5c73f48656e13d43ea018b700729",
+    "mtime": 1784555050.0811908,
+    "ast_hash": "ccde6e34b5d3e4a8dea05db9ced1e3c8",
     "semantic_hash": ""
   },
   "app/schemas.py": {
-    "mtime": 1783479842.1114328,
-    "ast_hash": "40a2a7cd6836670780155fb0cc174d07",
+    "mtime": 1784563751.9760075,
+    "ast_hash": "e0f740a6f947fdabe0aa6a4a8606699b",
     "semantic_hash": ""
   },
   "migrations/env.py": {
@@ -85,9 +85,9 @@
     "semantic_hash": "7ed854e06bfc669e130c78a0a51b423e"
   },
   "migrations/versions/50c6d8041c3c_initial_users_and_words_tables.py": {
-    "mtime": 1783245233.935528,
-    "ast_hash": "c8899539b7403ae2131502e434989ced",
-    "semantic_hash": "c8899539b7403ae2131502e434989ced"
+    "mtime": 1784555513.8834376,
+    "ast_hash": "7fbb3470e4d7e9ba4cd3b88f5c37eb50",
+    "semantic_hash": ""
   },
   "tests/__init__.py": {
     "mtime": 1783245233.9358072,
@@ -95,14 +95,14 @@
     "semantic_hash": "0b35a2a1aff7ec4daead4ee9f89caa07"
   },
   "tests/conftest.py": {
-    "mtime": 1783245233.9358897,
-    "ast_hash": "e31a3d899d3e802ee844524403de3546",
-    "semantic_hash": "e31a3d899d3e802ee844524403de3546"
+    "mtime": 1784555157.9653122,
+    "ast_hash": "f1a1d47233f6c5d7488e2c3d17289801",
+    "semantic_hash": ""
   },
   "tests/integration/test_api.py": {
-    "mtime": 1783245233.9360201,
-    "ast_hash": "ec9f025f2f2f82e32e8cf4024c40e965",
-    "semantic_hash": "ec9f025f2f2f82e32e8cf4024c40e965"
+    "mtime": 1784548624.2809138,
+    "ast_hash": "10b13e15a85e880b354106c8031010e5",
+    "semantic_hash": ""
   },
   "tests/unit/test_auth.py": {
     "mtime": 1783245233.936132,
@@ -110,14 +110,14 @@
     "semantic_hash": "aea1e50b2ca372c4d43190d793da2d30"
   },
   "tests/unit/test_crud_words.py": {
-    "mtime": 1783245233.9362087,
-    "ast_hash": "cefccc4a9afcf63756424c6ad8da3431",
-    "semantic_hash": "cefccc4a9afcf63756424c6ad8da3431"
+    "mtime": 1784548612.5532737,
+    "ast_hash": "7cf6a8a1c0eed76838fd2d08a308a80b",
+    "semantic_hash": ""
   },
   ".claude/CLAUDE.md": {
-    "mtime": 1783247683.4858572,
-    "ast_hash": "9b31786b637be3c13978bec4c2330752",
-    "semantic_hash": "9b31786b637be3c13978bec4c2330752"
+    "mtime": 1784550460.2273357,
+    "ast_hash": "1a38e3bbb78d69d3d00d49f2ad511813",
+    "semantic_hash": ""
   },
   ".claude/skills/graphify/SKILL.md": {
     "mtime": 1783247683.4856083,
@@ -180,13 +180,13 @@
     "semantic_hash": ""
   },
   "app/ai_generator.py": {
-    "mtime": 1783401706.4204206,
-    "ast_hash": "756adcc3cc993176f469e0ea3a3b3031",
+    "mtime": 1784548284.99141,
+    "ast_hash": "79192521201702457a577bc032374b07",
     "semantic_hash": ""
   },
   "app/phrases.py": {
-    "mtime": 1783401409.5886357,
-    "ast_hash": "d08106439f8d5f2f4d44ddd5ba647ad4",
+    "mtime": 1784548307.5255854,
+    "ast_hash": "3bb2448a4e05c620d6ae8f4176f6ac6e",
     "semantic_hash": ""
   },
   "app/routers/billing.py": {
@@ -200,8 +200,133 @@
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1783479942.2097554,
-    "ast_hash": "b715c027e739344456082ff540bed6ec",
+    "mtime": 1784563229.2877986,
+    "ast_hash": "d4ae692d2a3addb9d84d4effcb87f036",
+    "semantic_hash": ""
+  },
+  ".codex/hooks.json": {
+    "mtime": 1783955276.5674648,
+    "ast_hash": "14432ca18734be8a10d1af16e6bf3062",
+    "semantic_hash": ""
+  },
+  "app/image_generator.py": {
+    "mtime": 1784551131.1445749,
+    "ast_hash": "58789b3eb00780d7c6e0c926f23e6145",
+    "semantic_hash": ""
+  },
+  "migrations/versions/a3f1c9d24b70_scene_images_and_catchup.py": {
+    "mtime": 1784548476.1708686,
+    "ast_hash": "bd3823dc9e9037bb4ebd5b7b000220a8",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_images.py": {
+    "mtime": 1784551139.5298865,
+    "ast_hash": "3d02214bd90214f7266655fb4149a0a4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/SKILL.md": {
+    "mtime": 1783955276.5664237,
+    "ast_hash": "3bbc4b61d98ac0aec6644ece868463f2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/add-watch.md": {
+    "mtime": 1783247623.6628942,
+    "ast_hash": "d59d027fe449f06aa03905a01184e779",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/exports.md": {
+    "mtime": 1783247623.6629684,
+    "ast_hash": "9da2a2152e60a22f07f05fed5158f287",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1783247623.663055,
+    "ast_hash": "42fef56a01698118f7fd722acdadea34",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1783247623.6631327,
+    "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/hooks.md": {
+    "mtime": 1783247623.663203,
+    "ast_hash": "3f545db6ce646650bb9de588f5512a27",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/query.md": {
+    "mtime": 1783247623.665248,
+    "ast_hash": "3c46f8ad006874260614ed8657d02307",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/transcribe.md": {
+    "mtime": 1783247623.6653953,
+    "ast_hash": "67b6a5fa6c0974e18f60db9f8932fbd8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/update.md": {
+    "mtime": 1783247623.665486,
+    "ast_hash": "c698309979460d0f02ba616417844399",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1783955276.5638545,
+    "ast_hash": "e3d183be482002b8f9823604960a457b",
+    "semantic_hash": ""
+  },
+  "app/evaluator.py": {
+    "mtime": 1784549587.8626635,
+    "ast_hash": "b6582a0efcbc56c493a419ef629d6d55",
+    "semantic_hash": ""
+  },
+  "migrations/versions/b7e2d1840c93_review_logs.py": {
+    "mtime": 1784549723.6465,
+    "ast_hash": "fa4f53cebb49e3e391f02159309ff71e",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_describe.py": {
+    "mtime": 1784549773.0898023,
+    "ast_hash": "330beb26ab9c1a5753f3df023c661b21",
+    "semantic_hash": ""
+  },
+  "app/crud/catalog.py": {
+    "mtime": 1784554666.0435343,
+    "ast_hash": "a77e994d9040ecd8d66acfa60241b041",
+    "semantic_hash": ""
+  },
+  "app/routers/catalog.py": {
+    "mtime": 1784563754.426242,
+    "ast_hash": "7999980e867b9d73b11192216b9a10c2",
+    "semantic_hash": ""
+  },
+  "app/seed_catalog.py": {
+    "mtime": 1784554895.3167377,
+    "ast_hash": "3d929399ffeb0b1dbedb60399a3ed6ff",
+    "semantic_hash": ""
+  },
+  "data/catalog_seed.json": {
+    "mtime": 1784563730.822534,
+    "ast_hash": "625ccb69c0b8308c0f9e25a4e7dc1cb3",
+    "semantic_hash": ""
+  },
+  "migrations/versions/c4a8e91f3d25_word_catalog.py": {
+    "mtime": 1784554552.3764558,
+    "ast_hash": "8bdc29ea377f154d94c2a0daa0747568",
+    "semantic_hash": ""
+  },
+  "migrations/versions/d9b31c7a0e46_words_unique_key.py": {
+    "mtime": 1784554570.820306,
+    "ast_hash": "7a567476713e76861658ec5140c07121",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_catalog.py": {
+    "mtime": 1784563797.116307,
+    "ast_hash": "8076388b4a947261e369fa4efd6e9b26",
+    "semantic_hash": ""
+  },
+  ".claude/skills/run-local/SKILL.md": {
+    "mtime": 1784550441.3410254,
+    "ast_hash": "e932e69fdaf1363abe81af3fcee49d42",
     "semantic_hash": ""
   }
 }
