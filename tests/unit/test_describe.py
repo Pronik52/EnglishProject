@@ -41,6 +41,100 @@ def test_word_is_used_catches_word_forms():
     assert not evaluator._word_is_used("lighthouse", "a dog runs")
 
 
+def test_prompt_does_not_require_time_that_is_not_visible_in_picture():
+    """Эталонная фраза — контекст, а не список обязательных деталей.
+
+    Точное время нельзя восстановить по обычной сцене завтрака, поэтому за
+    ответ ``We have breakfast together`` модель не должна придираться.
+    """
+    prompt = evaluator._build_prompt(
+        word="breakfast",
+        translation="завтрак",
+        phrase="We have breakfast at eight o'clock.",
+        scene="a man and a woman having breakfast together in a sunny kitchen",
+        level="A1",
+        answer="We have breakfast together",
+    )
+
+    assert "NOT a checklist" in prompt
+    assert "do not criticise a missing exact time" in prompt
+    assert "Missing optional scene details are NOT grammar issues" in prompt
+    assert "Otherwise return an empty string" in prompt
+
+
+def test_unverifiable_time_nitpick_is_removed_from_model_verdict():
+    verdict = evaluator._remove_unverifiable_nitpicks({
+        "grade": 2,
+        "used_word": True,
+        "feedback_ru": "Отлично, но не указано время.",
+        "grammar_ru": ["Не хватает указания на время"],
+        "better_en": "We have breakfast together at eight o'clock.",
+        "offline": False,
+    }, scene="a man and a woman having breakfast together in a sunny kitchen")
+
+    assert verdict["grammar_ru"] == []
+    assert verdict["better_en"] == ""
+    assert "врем" not in verdict["feedback_ru"].lower()
+
+
+def test_time_may_be_checked_when_a_clock_is_visible():
+    verdict = evaluator._remove_unverifiable_nitpicks({
+        "grade": 2,
+        "feedback_ru": "Смысл передан.",
+        "grammar_ru": ["Проверьте указанное время"],
+        "better_en": "We have breakfast at eight o'clock.",
+    }, scene="a wall clock visibly shows eight as two people eat breakfast")
+
+    assert verdict["grammar_ru"] == ["Проверьте указанное время"]
+    assert verdict["better_en"] == "We have breakfast at eight o'clock."
+
+
+def test_exact_reference_answer_always_gets_three_stars():
+    verdict = evaluator._finalize_model_verdict({
+        "grade": 2,
+        "used_word": True,
+        "feedback_ru": "Слово использовано правильно.",
+        "grammar_ru": [],
+        "better_en": "",
+        "offline": False,
+    }, scene="milk bottles in a kitchen",
+       answer="the PRICE of milk went up",
+       phrase="The price of milk went up.")
+
+    assert verdict["grade"] == 3
+    assert verdict["feedback_ru"] == "Отлично, ответ полностью верный!"
+
+
+def test_different_answer_keeps_model_grade():
+    verdict = evaluator._finalize_model_verdict({
+        "grade": 2,
+        "used_word": True,
+        "feedback_ru": "Смысл передан.",
+        "grammar_ru": [],
+        "better_en": "",
+    }, scene="milk bottles in a kitchen",
+       answer="Milk is more expensive now",
+       phrase="The price of milk went up.")
+
+    assert verdict["grade"] == 2
+
+
+def test_exact_reference_answer_gets_three_stars_offline(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    verdict = run_async(evaluator.evaluate_description(
+        word="price",
+        translation="цена",
+        phrase="The price of milk went up.",
+        scene="milk bottles in a kitchen",
+        level="A1",
+        answer="The price of milk went up",
+    ))
+
+    assert verdict["offline"] is True
+    assert verdict["grade"] == 3
+
+
 def test_empty_answer_is_rejected_without_calling_ai():
     v = run_async(evaluator.evaluate_description(
         word="lighthouse", translation="маяк", phrase="p", scene="s",
