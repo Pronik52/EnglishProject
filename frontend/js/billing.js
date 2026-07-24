@@ -14,7 +14,7 @@ export function renderPill(){
   const pill=$("#planPill");
   pill.classList.remove("hidden");
   if(billing.is_premium){
-    pill.textContent="⭐ Premium";
+    pill.textContent="Premium";
     pill.classList.add("premium");
   }else{
     pill.textContent=`Free · ${billing.used_today}/${billing.daily_limit} сегодня`;
@@ -54,7 +54,7 @@ function renderPremium(){
 
 function featsList(){
   return PREMIUM_FEATURES.map(([name,ready])=>
-    `<li>${ready?'✅':'🔒'} ${name}${ready?'':'<span class="soon">скоро</span>'}</li>`).join("");
+    `<li><span aria-hidden="true">${ready?'✓':'—'}</span> ${name}${ready?'':'<span class="soon">скоро</span>'}</li>`).join("");
 }
 
 function renderPlans(){
@@ -110,7 +110,7 @@ function renderPremiumStatus(){
     ? new Date(billing.premium_until).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"})
     : null;
   $("#premiumBody").innerHTML=`
-    <h2>Premium активен ⭐</h2>
+    <h2>Premium активен</h2>
     <div class="price">${until?`Действует до ${until}`:"Подписка активна"}</div>
     <ul>${featsList()}</ul>
     <button class="btn ghost" style="width:100%" data-b="deactivate">Вернуться на Free</button>
@@ -149,7 +149,7 @@ $("#premiumModal").onclick = async (e)=>{
         card_number:$("#ccNum").value, card_exp:$("#ccExp").value,
         card_cvc:$("#ccCvc").value, card_holder:$("#ccName").value
       }});
-      toast("Premium активирован ⭐");
+      toast("Premium активирован");
       closePremium();
       await refresh(); // обновляем тариф и снимаем блокировки на фразах
     } else if(b==="deactivate"){

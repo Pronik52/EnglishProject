@@ -12,7 +12,11 @@ let authMode = "login";
 // бы друг друга на всех вкладках сразу.
 document.querySelectorAll(".tab[data-mode]").forEach(t=>t.onclick=()=>{
   authMode=t.dataset.mode;
-  document.querySelectorAll(".tab[data-mode]").forEach(x=>x.classList.toggle("active",x===t));
+  document.querySelectorAll(".tab[data-mode]").forEach(x=>{
+    const active=x===t;
+    x.classList.toggle("active",active);
+    x.setAttribute("aria-selected", active ? "true" : "false");
+  });
   $("#authBtn").textContent = authMode==="login" ? "Войти" : "Зарегистрироваться";
   $("#pwHint").style.display = authMode==="register" ? "block" : "none";
   $("#password").autocomplete = authMode==="login" ? "current-password":"new-password";
@@ -34,6 +38,9 @@ $("#authBtn").onclick = async ()=>{
     enterApp();
   }catch(e){ msg.className="msg err"; msg.textContent=e.message; }
 };
+["#email", "#password"].forEach(selector=>$(selector).addEventListener("keydown",e=>{
+  if(e.key==="Enter") $("#authBtn").click();
+}));
 
 $("#logoutBtn").onclick=logout;
 
@@ -52,7 +59,12 @@ export async function enterApp(){
   $("#authView").classList.add("hidden");
   $("#appView").classList.remove("hidden");
   $("#logoutBtn").classList.remove("hidden");
-  try{ const me=await api("/auth/me"); $("#levelSel").value=me.level; }catch(e){}
+  try{
+    const me=await api("/auth/me");
+    $("#levelSel").value=me.level;
+    $("#userLabel").textContent=me.email;
+    $("#userLabel").classList.remove("hidden");
+  }catch(e){}
   $("#levelBox").classList.remove("hidden");
   if(speech.supported) $("#speakBox").classList.remove("hidden"); // тумблер автоозвучки — только если API есть
   await refresh();

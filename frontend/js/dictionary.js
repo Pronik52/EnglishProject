@@ -19,8 +19,8 @@ export function renderList(items){
     const pct=Math.min(100, lvl/SRS_MAX_LEVEL*100);
     // Остаток бесплатных генераций фразы по слову (Premium — без лимита).
     const regenLeft = Math.max(0, REGEN_LIMIT - (w.regen_count||0));
-    const regenLabel = premium ? "🔁 Другая фраза"
-      : regenLeft>0 ? `🔁 Другая фраза (${regenLeft})` : "🔁 Другая фраза 🔒";
+    const regenLabel = premium ? "Другая фраза"
+      : regenLeft>0 ? `Другая фраза · ${regenLeft}` : "Другая фраза · лимит";
     const badge = w.is_learned ? 'выучено ✓' : `ур. ${lvl}/${SRS_MAX_LEVEL} · ${dueLabel(w.due_at)}`;
     const fresh = lvl===0 && !w.is_learned && (w.review_count||0)===0;
     return `<div class="word ${w.is_learned?'learned':''}" data-id="${w.id}">
@@ -38,7 +38,7 @@ export function renderList(items){
         <button class="btn sm" data-act="review">Повторить</button>
         <button class="btn ghost sm" data-act="regen">${regenLabel}</button>
         <button class="btn ghost sm" data-act="learned">${w.is_learned?'Вернуть в учёбу':'Отметить выученным'}</button>
-        <button class="btn ghost sm" data-act="reset" ${fresh?'disabled style="opacity:.4"':''}>↺ Сбросить</button>
+        <button class="btn ghost sm" data-act="reset" ${fresh?'disabled style="opacity:.4"':''}>Сбросить</button>
         <button class="btn ghost sm" data-act="del" style="margin-left:auto;color:var(--danger)">Удалить</button>
       </div>
     </div>`;

@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1784563229.2877986,
-    "ast_hash": "d4ae692d2a3addb9d84d4effcb87f036",
+    "mtime": 1784612726.7406557,
+    "ast_hash": "2b70c8d8f5e38c508388b38a4e1d3b95",
     "semantic_hash": ""
   },
   ".codex/hooks.json": {
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "app/evaluator.py": {
-    "mtime": 1784549587.8626635,
-    "ast_hash": "b6582a0efcbc56c493a419ef629d6d55",
+    "mtime": 1784624535.7809942,
+    "ast_hash": "c3f2f16321a9f3f6caa9c290584d818b",
     "semantic_hash": ""
   },
   "migrations/versions/b7e2d1840c93_review_logs.py": {
@@ -285,8 +285,8 @@
     "semantic_hash": ""
   },
   "tests/unit/test_describe.py": {
-    "mtime": 1784549773.0898023,
-    "ast_hash": "330beb26ab9c1a5753f3df023c661b21",
+    "mtime": 1784624535.8584814,
+    "ast_hash": "6822f815ebb1ca253fa606106223d9f5",
     "semantic_hash": ""
   },
   "app/crud/catalog.py": {
@@ -327,6 +327,36 @@
   ".claude/skills/run-local/SKILL.md": {
     "mtime": 1784550441.3410254,
     "ast_hash": "e932e69fdaf1363abe81af3fcee49d42",
+    "semantic_hash": ""
+  },
+  "frontend/js/app.js": {
+    "mtime": 1784565063.2743516,
+    "ast_hash": "d723c76e90e49a353bbe835820f7bf99",
+    "semantic_hash": ""
+  },
+  "frontend/js/auth.js": {
+    "mtime": 1784612754.6092527,
+    "ast_hash": "d13d902af6f1f169a91f1f0e6b408afa",
+    "semantic_hash": ""
+  },
+  "frontend/js/billing.js": {
+    "mtime": 1784612754.7856054,
+    "ast_hash": "9a197e6c62b10b56b8a28a929121d806",
+    "semantic_hash": ""
+  },
+  "frontend/js/core.js": {
+    "mtime": 1784612754.5264933,
+    "ast_hash": "795b9ad9f7d806533e8d6e293bc7cb6f",
+    "semantic_hash": ""
+  },
+  "frontend/js/dictionary.js": {
+    "mtime": 1784612754.7028353,
+    "ast_hash": "f8328d57f5641386e5f86521a472ce3d",
+    "semantic_hash": ""
+  },
+  "frontend/js/study.js": {
+    "mtime": 1784565043.5708334,
+    "ast_hash": "cb09c6211067012eb1fbb7fa24fcfe9d",
     "semantic_hash": ""
   }
 }

@@ -1,132 +1,190 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PhraseLearn — учим слова фразами</title>
-<link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#edf3f7">
+  <meta name="description" content="PhraseLearn помогает запоминать английские слова через короткие фразы, сцены и интервальные повторения.">
+  <title>PhraseLearn — английский в контексте</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="brand"><div class="logo">📚</div> PhraseLearn</div>
-    <div class="head-right">
-      <button id="planPill" class="pill hidden">Free</button>
-      <label id="levelBox" class="levelbox hidden">Уровень
-        <select id="levelSel">
-          <option value="A1">A1 · начинающий</option>
-          <option value="A2">A2 · элементарный</option>
-          <option value="B1">B1 · средний</option>
-          <option value="B2">B2 · выше среднего</option>
-          <option value="C1">C1 · продвинутый</option>
-          <option value="C2">C2 · владение в совершенстве</option>
-        </select>
-      </label>
-      <label id="speakBox" class="speak-toggle hidden" title="Автоозвучка слова при показе ответа в тренировке">
-        <input type="checkbox" id="autoSpeak"> 🔊 Авто
-      </label>
-      <button id="logoutBtn" class="btn ghost sm hidden">Выйти</button>
-    </div>
-  </header>
+  <a class="skip-link" href="#mainContent">К основному содержанию</a>
 
-  <!-- ЭКРАН АВТОРИЗАЦИИ -->
-  <section id="authView" class="auth">
-    <div class="card">
-      <h1>Учим слова фразами</h1>
-      <p class="muted">Добавляйте английские слова — к каждому появится короткая фраза, чтобы слово запомнилось в контексте.</p>
-      <div class="tabs">
-        <div class="tab active" data-mode="login">Вход</div>
-        <div class="tab" data-mode="register">Регистрация</div>
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input id="email" type="email" placeholder="you@example.com" autocomplete="username">
-      </div>
-      <div class="field">
-        <label>Пароль</label>
-        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
-        <div class="hint" id="pwHint">Для регистрации: минимум 8 символов, заглавная буква и цифра.</div>
-      </div>
-      <button id="authBtn" class="btn" style="width:100%">Войти</button>
-      <div class="msg" id="authMsg"></div>
-    </div>
-  </section>
-
-  <!-- ОСНОВНОЙ ЭКРАН -->
-  <section id="appView" class="hidden">
-    <div class="stats">
-      <div class="stat"><b id="stTotal">0</b><span>всего слов</span></div>
-      <div class="stat"><b id="stLearned" style="color:var(--good)">0</b><span>выучено</span></div>
-      <div class="stat"><b id="stLeft" style="color:var(--warn)">0</b><span>осталось</span></div>
-      <div class="stat"><b id="stDue" style="color:var(--accent)">0</b><span>к повтору</span></div>
-    </div>
-
-    <div class="card">
-      <div class="tabs">
-        <button class="tab active" data-tab="manual">✍️ Добавить вручную</button>
-        <button class="tab" data-tab="catalog">📚 Выбрать из каталога</button>
+  <div class="site-shell">
+    <header class="top" aria-label="Верхняя панель">
+      <div class="brand" aria-label="PhraseLearn">
+        <span class="logo" aria-hidden="true"><i>p</i><i>h</i></span>
+        <span class="brand-name">Phrase<span>Learn</span></span>
       </div>
 
-      <div id="manualPane">
-        <div class="addgrid">
-          <input id="wText" placeholder="Слово (english)">
-          <input id="wTrans" placeholder="Перевод (русский)">
-          <button id="addBtn" class="btn">Добавить</button>
+      <div class="head-right">
+        <span id="userLabel" class="user-label hidden"></span>
+        <button id="planPill" class="pill hidden" type="button">Free</button>
+        <label id="levelBox" class="levelbox hidden">
+          <span>Уровень</span>
+          <select id="levelSel" aria-label="Уровень английского">
+            <option value="A1">A1 · начинающий</option>
+            <option value="A2">A2 · элементарный</option>
+            <option value="B1">B1 · средний</option>
+            <option value="B2">B2 · выше среднего</option>
+            <option value="C1">C1 · продвинутый</option>
+            <option value="C2">C2 · свободный</option>
+          </select>
+        </label>
+        <label id="speakBox" class="speak-toggle hidden" title="Автоматически озвучивать ответ в тренировке">
+          <input type="checkbox" id="autoSpeak">
+          <span>Автозвук</span>
+        </label>
+        <button id="logoutBtn" class="btn ghost sm hidden" type="button">Выйти</button>
+      </div>
+    </header>
+
+    <main id="mainContent">
+      <section id="authView" class="auth-shell" aria-labelledby="authTitle">
+        <div class="auth-story">
+          <p class="eyebrow">Английский, который остаётся с вами</p>
+          <h1 id="authTitle">Не учите слово.<br><em>Запомните момент.</em></h1>
+          <p class="auth-lead">Короткая фраза, визуальная сцена и повторение в нужный день превращают перевод в живую речь.</p>
+
+          <figure class="phrase-ticket">
+            <figcaption>
+              <span>Сегодняшняя сцена</span>
+              <span>B1 · 08:40</span>
+            </figcaption>
+            <blockquote>“She <mark>lingered</mark> by the window after the rain.”</blockquote>
+            <div class="ticket-translation">linger <span>— задержаться</span></div>
+            <div class="ticket-route" aria-hidden="true">
+              <i class="done"></i><span></span><i class="done"></i><span></span><i></i><span></span><i></i>
+            </div>
+          </figure>
         </div>
-        <div id="previewBox" class="preview hidden"></div>
-        <div class="msg err" id="addMsg"></div>
-      </div>
 
-      <div id="catalogPane" class="hidden">
-        <div class="catalog-filters">
-          <label>Уровень
-            <select id="catLevel"></select>
-          </label>
-          <label>Категория
-            <select id="catCategory"><option value="">Все категории</option></select>
-          </label>
-          <label class="catalog-toggle">
-            <input type="checkbox" id="catHideAdded"> скрыть добавленные
-          </label>
+        <div class="auth-panel card">
+          <div class="auth-panel-head">
+            <span class="section-kicker">Личный словарь</span>
+            <h2>Продолжим с вашей фразы</h2>
+          </div>
+
+          <div class="tabs auth-tabs" role="tablist" aria-label="Вход или регистрация">
+            <button class="tab active" data-mode="login" type="button" role="tab" aria-selected="true">Вход</button>
+            <button class="tab" data-mode="register" type="button" role="tab" aria-selected="false">Регистрация</button>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@example.com" autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="password">Пароль</label>
+            <input id="password" type="password" placeholder="Минимум 8 символов" autocomplete="current-password">
+            <div class="hint" id="pwHint">Для регистрации нужна заглавная буква и цифра.</div>
+          </div>
+          <button id="authBtn" class="btn auth-submit" type="button">Войти</button>
+          <div class="msg" id="authMsg" role="status" aria-live="polite"></div>
+
+          <p class="privacy-note">Ваши слова видны только вам.</p>
         </div>
-        <div id="catBody" class="catalog-body"></div>
-        <div id="catBar" class="catalog-bar hidden">
-          <span id="catCount">Выбрано: 0</span>
-          <button id="catSelectAll" class="btn ghost sm">Выбрать все доступные</button>
-          <button id="catAdd" class="btn sm">Добавить выбранные</button>
+      </section>
+
+      <section id="appView" class="app-view hidden" aria-labelledby="dashboardTitle">
+        <div class="dashboard-intro">
+          <div>
+            <p class="eyebrow">Сегодняшняя практика</p>
+            <h1 id="dashboardTitle">Вернём слова<br><em>в живую речь.</em></h1>
+            <p class="dashboard-copy">Начните с того, что уже пора повторить. Остальное словарь расставит по дням.</p>
+          </div>
+          <div class="session-callout">
+            <span class="session-label">Сессия на сегодня</span>
+            <strong><span id="stDue">0</span> слов ждут повторения</strong>
+            <button id="studyBtn" class="btn study-launch" type="button">
+              <span>Начать практику</span><b aria-hidden="true">→</b>
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <button id="studyBtn" class="btn" style="width:100%;margin-top:14px">▶ Учить фразы подряд</button>
+        <div class="stats memory-route" aria-label="Прогресс словаря">
+          <div class="stat stat-total"><i aria-hidden="true"></i><b id="stTotal">0</b><span>в словаре</span></div>
+          <div class="stat stat-learned"><i aria-hidden="true"></i><b id="stLearned">0</b><span>закреплено</span></div>
+          <div class="stat stat-left"><i aria-hidden="true"></i><b id="stLeft">0</b><span>в процессе</span></div>
+          <div class="route-caption">Маршрут памяти обновляется после каждого ответа</div>
+        </div>
 
-    <div class="list" id="list"></div>
-  </section>
+        <section class="composer card" aria-labelledby="addTitle">
+          <div class="section-heading">
+            <div>
+              <span class="section-kicker">Пополнить словарь</span>
+              <h2 id="addTitle">Дайте новому слову контекст</h2>
+            </div>
+            <p>Добавьте своё слово или выберите знакомую тему.</p>
+          </div>
 
-  <!-- ЭКРАН УЧЁБЫ ФРАЗАМИ -->
-  <section id="studyView" class="hidden">
-    <div class="studybar">
-      <span class="count" id="studyCount">0 / 0</span>
-      <div class="progress"><i id="studyProgress" style="width:0%"></i></div>
-      <select id="studyMode" class="mode-select" title="Режим тренировки">
-        <option value="describe">🖼 Описание</option>
-        <option value="choice">🔤 Выбор</option>
-        <option value="type">✍️ Ввод</option>
-      </select>
-      <button id="studyExit" class="btn ghost sm">Выйти</button>
-    </div>
-    <div class="card study-card" id="studyBody"></div>
-  </section>
-</div>
+          <div class="tabs composer-tabs" role="tablist" aria-label="Способ добавления слов">
+            <button class="tab active" data-tab="manual" type="button" role="tab">Своё слово</button>
+            <button class="tab" data-tab="catalog" type="button" role="tab">Каталог по уровню</button>
+          </div>
 
-<!-- Модальное окно Premium -->
-<div class="modal-bg" id="premiumModal">
-  <div class="modal" id="premiumBody"></div>
-</div>
+          <div id="manualPane">
+            <div class="addgrid">
+              <label><span>English</span><input id="wText" placeholder="linger" autocomplete="off"></label>
+              <label><span>Перевод</span><input id="wTrans" placeholder="задержаться" autocomplete="off"></label>
+              <button id="addBtn" class="btn" type="button">Добавить слово</button>
+            </div>
+            <div id="previewBox" class="preview hidden"></div>
+            <div class="msg err" id="addMsg" role="status" aria-live="polite"></div>
+          </div>
 
-<div class="toast" id="toast"></div>
+          <div id="catalogPane" class="hidden">
+            <div class="catalog-filters">
+              <label>Уровень<select id="catLevel"></select></label>
+              <label>Тема<select id="catCategory"><option value="">Все темы</option></select></label>
+              <label class="catalog-toggle"><input type="checkbox" id="catHideAdded"><span>Скрыть добавленные</span></label>
+            </div>
+            <div id="catBody" class="catalog-body"></div>
+            <div id="catBar" class="catalog-bar hidden">
+              <span id="catCount">Выбрано: 0</span>
+              <button id="catSelectAll" class="btn ghost sm" type="button">Выбрать доступные</button>
+              <button id="catAdd" class="btn sm" type="button">Добавить выбранные</button>
+            </div>
+          </div>
+        </section>
 
+        <section class="dictionary-section" aria-labelledby="dictionaryTitle">
+          <div class="section-heading dictionary-heading">
+            <div>
+              <span class="section-kicker">Ваш материал</span>
+              <h2 id="dictionaryTitle">Словарь и фразы</h2>
+            </div>
+            <p>Сначала — слова, которым сейчас нужнее внимание.</p>
+          </div>
+          <div class="list" id="list"></div>
+        </section>
+      </section>
 
-<script type="module" src="js/app.js"></script>
+      <section id="studyView" class="study-view hidden" aria-label="Тренировка">
+        <div class="studybar">
+          <div class="study-progress-label"><span>Практика</span><b class="count" id="studyCount">0 / 0</b></div>
+          <div class="progress"><i id="studyProgress" style="width:0%"></i></div>
+          <label class="mode-label"><span>Режим</span>
+            <select id="studyMode" class="mode-select" title="Режим тренировки">
+              <option value="describe">Описание сцены</option>
+              <option value="choice">Выбор слова</option>
+              <option value="type">Ввод слова</option>
+            </select>
+          </label>
+          <button id="studyExit" class="btn ghost sm" type="button">Завершить</button>
+        </div>
+        <div class="card study-card" id="studyBody"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-bg" id="premiumModal" role="dialog" aria-modal="true" aria-label="Подписка Premium">
+    <div class="modal" id="premiumBody"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

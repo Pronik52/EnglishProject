@@ -40,11 +40,14 @@ export async function api(path, {method="GET", body=null, form=false, auth=false
 // ради одной функции. Форма входа только вешает его на кнопку «Выйти».
 export function logout(){
   token=null; localStorage.removeItem("token");
-  $("#appView").classList.add("hidden"); $("#authView").classList.remove("hidden");
+  $("#appView").classList.add("hidden");
+  $("#studyView").classList.add("hidden");
+  $("#authView").classList.remove("hidden");
   $("#logoutBtn").classList.add("hidden");
   $("#levelBox").classList.add("hidden");
   $("#speakBox").classList.add("hidden");
   $("#planPill").classList.add("hidden");
+  $("#userLabel").classList.add("hidden");
 }
 
 /* ---------- Общие утилиты ---------- */

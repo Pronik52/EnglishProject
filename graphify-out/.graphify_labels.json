@@ -86,9 +86,6 @@
   "84": "test_duplicate_check_handles_cyrillic_case",
   "85": "test_no_n_plus_one_queries",
   "86": "test_images.py",
-  "87": "image_generator.py",
-  "88": "test_api.py",
-  "89": "users.py",
-  "90": "test_manually_added_word_is_also_marked",
-  "91": "test_limit_counter_is_shared_with_manual_adding"
+  "89": "create_word",
+  "91": "test_manually_added_word_is_also_marked"
 }
