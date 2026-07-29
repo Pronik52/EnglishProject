@@ -1,16 +1,16 @@
-# Graph Report - EnglishProject  (2026-07-21)
+# Graph Report - EnglishProject  (2026-07-27)
 
 ## Corpus Check
-- 69 files · ~55,545 words
+- 77 files · ~62,492 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 664 nodes · 1163 edges · 89 communities (35 shown, 54 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 21 edges (avg confidence: 0.77)
+- 802 nodes · 1411 edges · 94 communities (41 shown, 53 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.62)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `20c65340`
+- Built from commit: `54869ccf`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -96,20 +96,25 @@
 - [[_COMMUNITY_test_duplicate_check_handles_cyrillic_case|test_duplicate_check_handles_cyrillic_case]]
 - [[_COMMUNITY_test_no_n_plus_one_queries|test_no_n_plus_one_queries]]
 - [[_COMMUNITY_test_images.py|test_images.py]]
+- [[_COMMUNITY_get_word|get_word]]
 - [[_COMMUNITY_create_word|create_word]]
 - [[_COMMUNITY_test_manually_added_word_is_also_marked|test_manually_added_word_is_also_marked]]
+- [[_COMMUNITY_Q Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт|Q: Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт]]
+- [[_COMMUNITY_Q Как бы ты исправил пункт 1|Q: Как бы ты исправил пункт 1?]]
+- [[_COMMUNITY_Q распиши подробнее третий пункт исправлений|Q: распиши подробнее третий пункт исправлений]]
+- [[_COMMUNITY_Q Проверь, правильно ли я сделал по третьему пункту, что ты описал|Q: Проверь, правильно ли я сделал по третьему пункту, что ты описал?]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `run_async()` - 35 edges
-2. `User` - 32 edges
-3. `create_word()` - 31 edges
-4. `$()` - 30 edges
-5. `get_word()` - 20 edges
-6. `api()` - 19 edges
-7. `describe_word()` - 16 edges
-8. `esc()` - 15 edges
-9. `renderStudy()` - 15 edges
-10. `renderDescribeCard()` - 13 edges
+2. `$()` - 34 edges
+3. `User` - 33 edges
+4. `create_word()` - 31 edges
+5. `api()` - 29 edges
+6. `_word()` - 24 edges
+7. `get_word()` - 20 edges
+8. `esc()` - 20 edges
+9. `renderStudy()` - 18 edges
+10. `describe_word()` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `test_ensure_scene_needs_a_phrase()` --calls--> `ensure_scene()`  [EXTRACTED]
@@ -126,35 +131,35 @@
 ## Import Cycles
 - None detected.
 
-## Communities (89 total, 54 thin omitted)
+## Communities (94 total, 53 thin omitted)
 
 ### Community 0 - "Graphify Pipeline & Exports"
-Cohesion: 0.29
-Nodes (5): Architecture, Commands, graphify, Project overview, Testing
+Cohesion: 0.25
+Nodes (6): Architecture, Commands, Frontend (`frontend/`), graphify, Project overview, Testing
 
 ### Community 1 - "Word CRUD & Tests"
 Cohesion: 0.05
-Nodes (83): ai_generate_phrase(), _build_prompt(), Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-, Промпт, требующий строго JSON с английской фразой и её переводом.      scenario, Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф, answer_word(), _apply_srs(), count_words_created_today() (+75 more)
+Nodes (79): ai_generate_phrase(), _build_prompt(), Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-, Промпт, требующий строго JSON с английской фразой и её переводом.      scenario, Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф, answer_word(), _apply_srs(), count_words_created_today() (+71 more)
 
 ### Community 2 - "DB Models & Routers"
-Cohesion: 0.07
-Nodes (57): authenticate_user(), create_user(), get_user_by_email(), Session, set_premium(), update_level(), get_db(), User (+49 more)
+Cohesion: 0.06
+Nodes (63): credentials_exception(), decode_access_token(), decode_access_token_payload(), get_access_token(), get_current_user(), HTTPException, Request, Session (+55 more)
 
 ### Community 4 - "App Entry & Error Handling"
-Cohesion: 0.06
-Nodes (37): count_describes_today(), describe_word(), run_async(), Тесты режима «опиши картинку»: мягкая оценка, лимит, журнал повторов., Решение по продукту: оценка мягкая. Замечания по грамматике     показываем, но п, Эталонная фраза — контекст, а не список обязательных деталей.      Точное время, test_daily_limit_blocks_free_user(), test_describe_endpoint_rejects_empty_text() (+29 more)
+Cohesion: 0.05
+Nodes (41): count_describes_today(), describe_word(), generate_word_image(), run_async(), Тесты режима «опиши картинку»: мягкая оценка, лимит, журнал повторов., Решение по продукту: оценка мягкая. Замечания по грамматике     показываем, но п, Эталонная фраза — контекст, а не список обязательных деталей.      Точное время, test_daily_limit_blocks_free_user() (+33 more)
 
 ### Community 5 - "Pydantic Schemas"
-Cohesion: 0.12
-Nodes (22): AnswerRequest, BillingStatus, CatalogAddRequest, CatalogAddResult, CatalogWordResponse, CategoryResponse, Config, DescribeRequest (+14 more)
+Cohesion: 0.07
+Nodes (43): _authenticate_or_401(), _cookie_secure(), create_bearer_token(), login(), logout(), Session, В production в .env обязательно COOKIE_SECURE=true; localhost работает по HTTP., Browser login: JWT остаётся недоступным JavaScript в HttpOnly cookie. (+35 more)
 
 ### Community 6 - "API Integration Tests"
 Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native AGENTS.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
 ### Community 7 - "Alembic Migration Env"
-Cohesion: 0.07
-Nodes (14): AppException, http_exception_handler(), validation_exception_handler(), log_requests(), Request, RequestValidationError, Тестирование поиска и фильтрации, Тестирование обработки ошибок (+6 more)
+Cohesion: 0.06
+Nodes (21): AppException, http_exception_handler(), validation_exception_handler(), csrf_protection(), log_requests(), Request, Проверяет cookie-сессии на небезопасных HTTP-методах.      Bearer API-клиенты, HTTPException (+13 more)
 
 ### Community 8 - "Test Fixtures"
 Cohesion: 0.12
@@ -163,6 +168,10 @@ Nodes (17): _headers(), Даже если клиент пришлёт чужой
 ### Community 11 - "Migration: Initial Tables"
 Cohesion: 0.22
 Nodes (13): main(), Session, Наполнение каталога слов из JSON-файла.  Запуск:     python -m app.seed_catalog, Загружает категории и слова. Возвращает отчёт о том, что изменилось., Ошибка в данных файла. Импорт прерывается до записи в базу., Проверяет структуру файла целиком ДО записи в базу.      Валидируем всё сразу и, seed(), SeedError (+5 more)
+
+### Community 14 - "SQLAlchemy Session"
+Cohesion: 0.10
+Nodes (34): _headers(), Тесты учебной сессии: отбор по срокам, лестница режимов, варианты ответа., Число на дашборде и состав сессии считаются одним правилом.      Раньше условие, Слово с заданным состоянием SRS — без генерации фраз и картинок., Главный барьер входа: первая карточка не должна требовать сочинения., Словарь почти пуст и каталог не наполнен — выбирать не из чего., Своих слов мало — варианты добираются каталогом того же уровня., Клиент может вручную переключить режим — варианты должны быть готовы.      Собра (+26 more)
 
 ### Community 16 - "SQLAlchemy Session"
 Cohesion: 0.08
@@ -197,8 +206,8 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 64 - "AGENTS.md"
-Cohesion: 0.29
-Nodes (5): Architecture, Commands, graphify, Project overview, Testing
+Cohesion: 0.25
+Nodes (6): Architecture, Commands, Frontend (`frontend/`), graphify, Project overview, Testing
 
 ### Community 65 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -221,8 +230,8 @@ Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ### Community 73 - "models.py"
-Cohesion: 0.09
-Nodes (27): add_words_to_dictionary(), _build_word(), _is_owned(), list_catalog_words(), list_categories(), list_levels(), _owned_keys(), Session (+19 more)
+Cohesion: 0.07
+Nodes (42): add_words_to_dictionary(), _build_word(), _is_owned(), list_catalog_words(), list_categories(), list_levels(), _owned_keys(), Session (+34 more)
 
 ### Community 75 - "Запуск EnglishProject локально"
 Cohesion: 0.18
@@ -241,28 +250,54 @@ Cohesion: 0.67
 Nodes (3): DuplicateWordError, Слово с таким же переводом уже есть в словаре пользователя.      Появилась вме, Exception
 
 ### Community 86 - "test_images.py"
-Cohesion: 0.11
-Nodes (55): refresh(), enterApp(), closePremium(), featsList(), fmtRub(), openPremium(), PLANS, PREMIUM_FEATURES (+47 more)
+Cohesion: 0.10
+Nodes (65): applyStats(), refresh(), refreshStats(), enterApp(), api(), dueLabel(), esc(), getCookie() (+57 more)
+
+### Community 91 - "test_manually_added_word_is_also_marked"
+Cohesion: 0.24
+Nodes (11): _headers(), Тесты тарифа: демо-покупка закрыта флагом, статус и лимиты доступны.  Оплата убр, Пороги не должны ощущаться на обычном занятии.      Раньше здесь стояли 10 слов, test_activate_does_not_grant_premium_when_disabled(), test_activate_is_hidden_without_demo_flag(), test_activate_works_when_demo_is_enabled(), test_arbitrary_flag_value_does_not_enable_demo(), test_deactivate_is_hidden_without_demo_flag() (+3 more)
+
+### Community 92 - "Q: Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт, Source Nodes
+
+### Community 93 - "Q: Как бы ты исправил пункт 1?"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Как бы ты исправил пункт 1?, Source Nodes
+
+### Community 94 - "Q: распиши подробнее третий пункт исправлений"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: распиши подробнее третий пункт исправлений, Source Nodes
+
+### Community 95 - "Q: Проверь, правильно ли я сделал по третьему пункту, что ты описал?"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Проверь, правильно ли я сделал по третьему пункту, что ты описал?, Source Nodes
 
 ## Knowledge Gaps
-- **139 isolated node(s):** `Config`, `PREMIUM_FEATURES`, `PLANS`, `catalog`, `study` (+134 more)
+- **153 isolated node(s):** `Config`, `rules`, `dict`, `catalog`, `ob` (+148 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **53 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+
+## Work-memory lessons
+
+**Preferred sources** — corroborated by past sessions; start here.
+- `get_current_user()` (3× useful, score=2.998914691) _(code changed — re-verify)_
+- `login()` (2× useful, score=1.999134655) _(code changed — re-verify)_
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `create_word()` connect `Word CRUD & Tests` to `Authentication & Users`, `App Entry & Error Handling`, `Pydantic Schemas`, `models.py`, `DuplicateWordError`, `create_word`, `test_manually_added_word_is_also_marked`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Why does `create_word()` connect `Word CRUD & Tests` to `Authentication & Users`, `App Entry & Error Handling`, `Pydantic Schemas`, `models.py`, `DuplicateWordError`, `get_word`, `create_word`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **Why does `WordCreate` connect `Pydantic Schemas` to `Word CRUD & Tests`, `DB Models & Routers`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `run_async()` connect `App Entry & Error Handling` to `create_word`, `test_manually_added_word_is_also_marked`, `Authentication & Users`, `Word CRUD & Tests`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `Генерация английской фразы и её русского перевода через Groq API.  Это «онлайн»-`, `Промпт, требующий строго JSON с английской фразой и её переводом.      scenario`, `Одна английская фраза со словом + её русский перевод, через Groq.      avoid — ф` to the rest of the system?**
-  _227 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _271 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Word CRUD & Tests` be split into smaller, more focused modules?**
-  _Cohesion score 0.052604698672114404 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05417236662106703 - nodes in this community are weakly interconnected._
 - **Should `DB Models & Routers` be split into smaller, more focused modules?**
-  _Cohesion score 0.07459207459207459 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0635814889336016 - nodes in this community are weakly interconnected._
 - **Should `Authentication & Users` be split into smaller, more focused modules?**
   _Cohesion score 0.08695652173913043 - nodes in this community are weakly interconnected._
+- **Should `App Entry & Error Handling` be split into smaller, more focused modules?**
+  _Cohesion score 0.053075396825396824 - nodes in this community are weakly interconnected._

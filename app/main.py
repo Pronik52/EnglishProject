@@ -1,8 +1,10 @@
 import logging
 import os
+import hmac
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import APIRouter
 from .routers import (
@@ -10,9 +12,11 @@ from .routers import (
     words as words_router,
     billing as billing_router,
     catalog as catalog_router,
+    study as study_router,
 )
 from .exceptions import validation_exception_handler, http_exception_handler
 from .database import Base, engine
+from . import auth
 
 logging.basicConfig(
     level=logging.INFO,
@@ -97,14 +101,66 @@ if engine.dialect.name == "sqlite":
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 
-# Настройка CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Настройка CORS нужна только для отдельного frontend origin. Встроенный /app
+# работает same-origin и в ней не нуждается. Cookie нельзя сочетать с "*".
+_cors_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    )
+
+
+_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+_CSRF_EXEMPT_PATHS = {
+    "/api/v1/auth/login",
+    "/api/v1/auth/token",
+}
+
+
+@app.middleware("http")
+async def csrf_protection(request: Request, call_next):
+    """Проверяет cookie-сессии на небезопасных HTTP-методах.
+
+    Bearer API-клиенты не несут access cookie и проходят по своей привычной
+    схеме. Browser SPA обязана прислать CSRF cookie и одноимённый header.
+    """
+    access_token = request.cookies.get(auth.ACCESS_COOKIE_NAME)
+    if (
+        request.method not in _SAFE_METHODS
+        and request.url.path not in _CSRF_EXEMPT_PATHS
+        and access_token
+    ):
+        csrf_cookie = request.cookies.get(auth.CSRF_COOKIE_NAME)
+        csrf_header = request.headers.get("X-CSRF-Token")
+        payload = auth.decode_access_token_payload(access_token)
+        expected = payload.get("csrf") if payload else None
+
+        if not (
+            csrf_cookie
+            and csrf_header
+            and expected
+            and hmac.compare_digest(csrf_cookie, csrf_header)
+            and hmac.compare_digest(csrf_cookie, expected)
+        ):
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": {
+                        "code": 403,
+                        "message": "CSRF-токен отсутствует или недействителен",
+                    }
+                },
+            )
+
+    return await call_next(request)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -123,6 +179,7 @@ api_router.include_router(auth_router.router, prefix="/auth")
 api_router.include_router(words_router.router)
 api_router.include_router(billing_router.router)
 api_router.include_router(catalog_router.router)
+api_router.include_router(study_router.router)
 
 app.include_router(api_router)
 

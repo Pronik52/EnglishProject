@@ -20,7 +20,6 @@
 
       <div class="head-right">
         <span id="userLabel" class="user-label hidden"></span>
-        <button id="planPill" class="pill hidden" type="button">Free</button>
         <label id="levelBox" class="levelbox hidden">
           <span>Уровень</span>
           <select id="levelSel" aria-label="Уровень английского">
@@ -87,6 +86,12 @@
         </div>
       </section>
 
+      <!-- Первый запуск: уровень → тема → стартовый набор. Содержимое рисует
+           onboarding.js, экран заканчивается сразу первой карточкой практики. -->
+      <section id="onboardView" class="onboard-view hidden" aria-label="Начало работы">
+        <div class="card onboard-card" id="onboardBody"></div>
+      </section>
+
       <section id="appView" class="app-view hidden" aria-labelledby="dashboardTitle">
         <div class="dashboard-intro">
           <div>
@@ -131,13 +136,16 @@
               <button id="addBtn" class="btn" type="button">Добавить слово</button>
             </div>
             <div id="previewBox" class="preview hidden"></div>
-            <div class="msg err" id="addMsg" role="status" aria-live="polite"></div>
+            <!-- Класс состояния (err/ok) проставляет JS: захардкоженный err
+                 красил в ошибку даже успешные сообщения. -->
+            <div class="msg" id="addMsg" role="status" aria-live="polite"></div>
           </div>
 
           <div id="catalogPane" class="hidden">
             <div class="catalog-filters">
               <label>Уровень<select id="catLevel"></select></label>
               <label>Тема<select id="catCategory"><option value="">Все темы</option></select></label>
+              <!-- Список тем заполняет dictionary.js: значения приходят с сервера. -->
               <label class="catalog-toggle"><input type="checkbox" id="catHideAdded"><span>Скрыть добавленные</span></label>
             </div>
             <div id="catBody" class="catalog-body"></div>
@@ -157,7 +165,17 @@
             </div>
             <p>Сначала — слова, которым сейчас нужнее внимание.</p>
           </div>
+          <div class="dict-toolbar">
+            <input id="dictSearch" type="search" placeholder="Поиск по слову или переводу"
+                   autocomplete="off" aria-label="Поиск по словарю">
+            <select id="dictFilter" aria-label="Фильтр словаря">
+              <option value="">Все слова</option>
+              <option value="false">В процессе</option>
+              <option value="true">Выученные</option>
+            </select>
+          </div>
           <div class="list" id="list"></div>
+          <div id="dictPages" class="catalog-pages hidden"></div>
         </section>
       </section>
 
@@ -167,9 +185,10 @@
           <div class="progress"><i id="studyProgress" style="width:0%"></i></div>
           <label class="mode-label"><span>Режим</span>
             <select id="studyMode" class="mode-select" title="Режим тренировки">
-              <option value="describe">Описание сцены</option>
+              <option value="auto">Авто по прогрессу</option>
               <option value="choice">Выбор слова</option>
               <option value="type">Ввод слова</option>
+              <option value="describe">Описание сцены</option>
             </select>
           </label>
           <button id="studyExit" class="btn ghost sm" type="button">Завершить</button>
@@ -177,10 +196,6 @@
         <div class="card study-card" id="studyBody"></div>
       </section>
     </main>
-  </div>
-
-  <div class="modal-bg" id="premiumModal" role="dialog" aria-modal="true" aria-label="Подписка Premium">
-    <div class="modal" id="premiumBody"></div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

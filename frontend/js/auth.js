@@ -1,6 +1,6 @@
 /* Экран входа и регистрации, кнопка выхода, смена уровня в шапке. */
 
-import { $, api, toast, setToken, logout, speech } from "./core.js";
+import { $, api, toast, logout, speech } from "./core.js";
 import { schedulePreview } from "./dictionary.js";
 import { refresh } from "./app.js";
 
@@ -33,9 +33,8 @@ $("#authBtn").onclick = async ()=>{
       await api("/auth/register",{method:"POST",body:{email,password},auth:true});
       msg.className="msg ok"; msg.textContent="Готово! Входим…";
     }
-    const tok = await api("/auth/login",{method:"POST",form:true,body:{username:email,password},auth:true});
-    setToken(tok.access_token); localStorage.setItem("token",tok.access_token);
-    enterApp();
+    await api("/auth/login",{method:"POST",form:true,body:{username:email,password},auth:true});
+    await enterApp();
   }catch(e){ msg.className="msg err"; msg.textContent=e.message; }
 };
 ["#email", "#password"].forEach(selector=>$(selector).addEventListener("keydown",e=>{
@@ -56,15 +55,15 @@ $("#levelSel").onchange = async ()=>{
 
 /* ---------- Основной экран ---------- */
 export async function enterApp(){
+  // Сначала проверяем сессию на сервере. JavaScript специально не может
+  // прочитать HttpOnly access cookie.
+  const me=await api("/auth/me");
   $("#authView").classList.add("hidden");
   $("#appView").classList.remove("hidden");
   $("#logoutBtn").classList.remove("hidden");
-  try{
-    const me=await api("/auth/me");
-    $("#levelSel").value=me.level;
-    $("#userLabel").textContent=me.email;
-    $("#userLabel").classList.remove("hidden");
-  }catch(e){}
+  $("#levelSel").value=me.level;
+  $("#userLabel").textContent=me.email;
+  $("#userLabel").classList.remove("hidden");
   $("#levelBox").classList.remove("hidden");
   if(speech.supported) $("#speakBox").classList.remove("hidden"); // тумблер автоозвучки — только если API есть
   await refresh();

@@ -30,15 +30,15 @@ async def create_word(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # Бесплатный тариф: не больше FREE_DAILY_WORD_LIMIT новых слов в сутки.
+    # Защита от злоупотреблений: не больше DAILY_WORD_LIMIT новых слов в сутки.
     if not current_user.is_premium:
         used = crud_words.count_words_created_today(db, current_user.id)
-        if used >= crud_words.FREE_DAILY_WORD_LIMIT:
+        if used >= crud_words.DAILY_WORD_LIMIT:
             raise HTTPException(
                 status_code=402,
-                detail=(f"Дневной лимит бесплатного тарифа исчерпан "
-                        f"({crud_words.FREE_DAILY_WORD_LIMIT} слов в день). "
-                        f"Оформите Premium для безлимита.")
+                detail=(f"На сегодня добавлено максимум слов "
+                        f"({crud_words.DAILY_WORD_LIMIT}). Продолжим завтра — "
+                        f"а пока лучше повторить то, что уже есть.")
             )
     try:
         created = await crud_words.create_word(
@@ -112,7 +112,9 @@ def get_stats(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    return crud_words.get_words_stats(db, owner_id=current_user.id)
+    return crud_words.get_words_stats(
+        db, owner_id=current_user.id, is_premium=current_user.is_premium
+    )
 
 
 # Повторить слово: review_count + 1, автоматический is_learned при >= 5.
@@ -145,9 +147,9 @@ async def regenerate_phrase(
     if status == "limit":
         raise HTTPException(
             status_code=402,
-            detail=(f"Лимит бесплатных генераций фразы для этого слова исчерпан "
-                    f"({crud_words.FREE_REGEN_LIMIT} на слово). "
-                    f"Оформите Premium для безлимита.")
+            detail=(f"Для этого слова фраза уже менялась "
+                    f"{crud_words.REGEN_LIMIT} раз — этого обычно более чем "
+                    f"достаточно, чтобы подобрать удачную.")
         )
     # Фраза сменилась — к новой сцене нужна новая картинка.
     _schedule_image(background_tasks, word, current_user.id)
@@ -247,13 +249,13 @@ async def describe_word(
     if status == "limit":
         raise HTTPException(
             status_code=402,
-            detail=(f"Дневной лимит проверок описания исчерпан "
-                    f"({crud_words.FREE_DAILY_DESCRIBE_LIMIT} в день). "
-                    f"Оформите Premium для безлимита.")
+            detail=(f"На сегодня проверок описания больше нет "
+                    f"({crud_words.DAILY_DESCRIBE_LIMIT} в день). "
+                    f"Режимы выбора и ввода работают без ограничений.")
         )
 
     left = -1 if current_user.is_premium else max(
-        0, crud_words.FREE_DAILY_DESCRIBE_LIMIT
+        0, crud_words.DAILY_DESCRIBE_LIMIT
         - crud_words.count_describes_today(db, current_user.id)
     )
     return {

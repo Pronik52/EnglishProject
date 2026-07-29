@@ -10,7 +10,7 @@ def test_api_flow(db_session, test_user):
 
     # 1. Получаем токен
     login_response = client.post(
-        "/api/v1/auth/login",
+        "/api/v1/auth/token",
         data={"username": test_user.email, "password": "secret"}
     )
     token = login_response.json()["access_token"]
@@ -73,7 +73,7 @@ def test_pagination(db_session, test_user):
 
     # Создаем несколько слов
     login = client.post(
-        "/api/v1/auth/login",
+        "/api/v1/auth/token",
         data={"username": test_user.email, "password": "secret"}
     )
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
@@ -113,7 +113,7 @@ def test_search_and_filter(db_session, test_user):
     """Тестирование поиска и фильтрации"""
 
     login = client.post(
-        "/api/v1/auth/login",
+        "/api/v1/auth/token",
         data={"username": test_user.email, "password": "secret"}
     )
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
@@ -137,11 +137,106 @@ def test_search_and_filter(db_session, test_user):
     assert len(filter_data["items"]) == 1
     assert filter_data["items"][0]["text"] == "learned"
 
+def test_newcomer_path_from_registration_to_first_answer(db_session):
+    """Путь новичка целиком: регистрация → набор из каталога → первая карточка.
+
+    Это тот самый сценарий, ради которого делался мастер первого запуска.
+    Проверяем главное: первая карточка человека, который только что
+    зарегистрировался, НЕ требует писать текст на английском.
+    """
+    # 1. Каталог, из которого мастер берёт стартовый набор.
+    topic = models.Category(slug="basics", title="Основное")
+    db_session.add(topic)
+    db_session.add_all([
+        models.CatalogWord(text=t, translation=r, level="A1",
+                           frequency_rank=i, categories=[topic])
+        for i, (t, r) in enumerate([
+            ("apple", "яблоко"), ("bread", "хлеб"), ("water", "вода"),
+            ("house", "дом"), ("river", "река"), ("light", "свет"),
+        ])
+    ])
+    db_session.commit()
+
+    # 2. Регистрация и вход.
+    email = "newcomer@example.com"
+    assert client.post("/api/v1/auth/register",
+                       json={"email": email, "password": "Secret123"}).status_code == 200
+    login = client.post("/api/v1/auth/token",
+                        data={"username": email, "password": "Secret123"})
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    # 3. Словарь пуст — фронтенд по этому признаку показывает мастер.
+    assert client.get("/api/v1/words/stats", headers=headers).json()["total"] == 0
+
+    # 4. Шаги мастера: уровень, тема, готовый набор.
+    assert client.patch("/api/v1/auth/level", json={"level": "A1"},
+                        headers=headers).status_code == 200
+    categories = client.get("/api/v1/catalog/categories?level=A1", headers=headers).json()
+    assert [c["slug"] for c in categories] == ["basics"]
+
+    starter = client.get("/api/v1/catalog/words?level=A1&category=basics&limit=10",
+                         headers=headers).json()
+    added = client.post("/api/v1/catalog/words/add",
+                        json={"word_ids": [w["id"] for w in starter["items"]]},
+                        headers=headers).json()
+    assert added["added_count"] == 6
+
+    # 5. Первая сессия: все слова новые, значит все карточки — на узнавание.
+    session = client.get("/api/v1/study/session", headers=headers).json()
+    assert session["due_total"] == 6
+    assert len(session["cards"]) == 6
+    assert {c["mode"] for c in session["cards"]} == {"choice"}
+    first = session["cards"][0]
+    assert len(first["options"]) == 4
+    assert first["word"]["text"] in first["options"]
+
+    # 6. Ответ уводит слово из сегодняшней сессии.
+    word_id = first["word"]["id"]
+    answered = client.patch(f"/api/v1/words/{word_id}/answer",
+                            json={"correct": True}, headers=headers)
+    assert answered.status_code == 200
+    assert answered.json()["srs_level"] == 1
+
+    second = client.get("/api/v1/study/session", headers=headers).json()
+    assert second["due_total"] == 5
+    assert word_id not in [c["word"]["id"] for c in second["cards"]]
+
+
+def test_session_grows_harder_as_word_is_learned(db_session, test_user):
+    """Лестница сложности: одно и то же слово меняет режим по мере повторов."""
+    login = client.post("/api/v1/auth/token",
+                        data={"username": test_user.email, "password": "secret"})
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    # Отвлекатели, чтобы режим выбора вообще был возможен.
+    for i in range(5):
+        client.post("/api/v1/words", json={"text": f"filler{i}", "translation": f"с{i}"},
+                    headers=headers)
+    target = client.post("/api/v1/words",
+                         json={"text": "lighthouse", "translation": "маяк"},
+                         headers=headers).json()
+
+    def mode_of(word_id):
+        session = client.get("/api/v1/study/session?ahead=true&size=50",
+                             headers=headers).json()
+        card = next(c for c in session["cards"] if c["word"]["id"] == word_id)
+        return card["mode"]
+
+    assert mode_of(target["id"]) == "choice"          # srs_level 0
+
+    client.patch(f"/api/v1/words/{target['id']}/answer",
+                 json={"correct": True}, headers=headers)
+    client.patch(f"/api/v1/words/{target['id']}/answer",
+                 json={"correct": True}, headers=headers)
+    # srs_level 2 — узнавание пройдено, теперь надо вспомнить и вписать.
+    assert mode_of(target["id"]) == "type"
+
+
 def test_error_handling(db_session, test_user):
     """Тестирование обработки ошибок"""
 
     login = client.post(
-        "/api/v1/auth/login",
+        "/api/v1/auth/token",
         data={"username": test_user.email, "password": "secret"}
     )
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}

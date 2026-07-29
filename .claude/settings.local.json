@@ -71,7 +71,8 @@
       "Bash(kill 6002)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('phrase:',d['phrase'],'| phrase_ru:',repr\\(d.get\\('phrase_ru'\\)\\)\\)\")",
       "Bash(python3 -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/crud/words.py','app/routers/words.py','app/models.py','app/schemas.py','app/main.py']]; print\\('Python OK'\\)\")",
-      "Bash(kill 7501)"
+      "Bash(kill 7501)",
+      "Bash(python3 -c \"import fastapi, sqlalchemy, pydantic; print\\('fastapi', fastapi.__version__\\); print\\('sqlalchemy', sqlalchemy.__version__\\); print\\('pydantic', pydantic.VERSION\\)\")"
     ]
   }
 }

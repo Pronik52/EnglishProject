@@ -1,71 +1,197 @@
 /* Личный словарь: список слов, добавление вручную и каталог готовых слов. */
 
 import { $, api, toast, esc, highlight, spk, dueLabel } from "./core.js";
-import { billing, openPremium } from "./billing.js";
-import { refresh } from "./app.js";
+import { refresh, refreshStats } from "./app.js";
 
-// Бесплатных генераций фразы на слово (совпадает с FREE_REGEN_LIMIT на бэке).
-const REGEN_LIMIT=5;
-
-// SRS: максимальный уровень (совпадает с SRS_MAX_LEVEL на бэке).
-const SRS_MAX_LEVEL=5;
-
-export function renderList(items){
-  const box=$("#list");
-  if(!items.length){ box.innerHTML='<div class="empty">Пока нет слов. Добавьте первое сверху ☝️</div>'; return; }
-  const premium = billing && billing.is_premium;
-  box.innerHTML = items.map(w=>{
-    const lvl=w.srs_level||0;
-    const pct=Math.min(100, lvl/SRS_MAX_LEVEL*100);
-    // Остаток бесплатных генераций фразы по слову (Premium — без лимита).
-    const regenLeft = Math.max(0, REGEN_LIMIT - (w.regen_count||0));
-    const regenLabel = premium ? "Другая фраза"
-      : regenLeft>0 ? `Другая фраза · ${regenLeft}` : "Другая фраза · лимит";
-    const badge = w.is_learned ? 'выучено ✓' : `ур. ${lvl}/${SRS_MAX_LEVEL} · ${dueLabel(w.due_at)}`;
-    const fresh = lvl===0 && !w.is_learned && (w.review_count||0)===0;
-    return `<div class="word ${w.is_learned?'learned':''}" data-id="${w.id}">
-      <div class="head">
-        <span class="en">${esc(w.text)}</span>${spk(w.text)}
-        <span class="ru">— ${esc(w.translation)}</span>
-        <span class="badge">${badge}</span>
-      </div>
-      <div class="phrase-row">
-        ${w.image_url?`<img class="thumb" src="${esc(w.image_url)}" alt="" loading="lazy">`:''}
-        <div class="phrase">${highlight(w.phrase||'—', w.text)} ${w.phrase?spk(w.phrase):''}</div>
-      </div>
-      <div class="progress"><i style="width:${pct}%"></i></div>
-      <div class="actions">
-        <button class="btn sm" data-act="review">Повторить</button>
-        <button class="btn ghost sm" data-act="regen">${regenLabel}</button>
-        <button class="btn ghost sm" data-act="learned">${w.is_learned?'Вернуть в учёбу':'Отметить выученным'}</button>
-        <button class="btn ghost sm" data-act="reset" ${fresh?'disabled style="opacity:.4"':''}>Сбросить</button>
-        <button class="btn ghost sm" data-act="del" style="margin-left:auto;color:var(--danger)">Удалить</button>
-      </div>
-    </div>`;
-  }).join("");
+// Правила показа приходят с сервера вместе со статистикой (/words/stats).
+// Держать их копию на клиенте нельзя: она разъезжается с бэкендом молча.
+let rules = {srs_max_level:5, regen_limit:5};
+export function setRules(stats){
+  if(stats.srs_max_level) rules.srs_max_level = stats.srs_max_level;
+  if(stats.regen_limit !== undefined) rules.regen_limit = stats.regen_limit;
 }
+
+// Разметка одной карточки. Отдельной функцией — её использует и полная
+// отрисовка списка, и точечное обновление после действия.
+function wordCardHtml(w){
+  const maxLevel = rules.srs_max_level;
+  const lvl=w.srs_level||0;
+  const pct=Math.min(100, lvl/maxLevel*100);
+  const regenLeft = Math.max(0, rules.regen_limit - (w.regen_count||0));
+  const regenLabel = rules.regen_limit===-1 ? "Другая фраза"
+    : regenLeft>0 ? `Другая фраза · ${regenLeft}` : "Другая фраза · лимит";
+  const badge = w.is_learned ? 'выучено ✓' : `ур. ${lvl}/${maxLevel} · ${dueLabel(w.due_at)}`;
+  const fresh = lvl===0 && !w.is_learned && (w.review_count||0)===0;
+  return `<div class="word ${w.is_learned?'learned':''}" data-id="${w.id}">
+    <div class="head">
+      <span class="en">${esc(w.text)}</span>${spk(w.text)}
+      <span class="ru">— ${esc(w.translation)}</span>
+      <span class="badge">${badge}</span>
+    </div>
+    <div class="phrase-row">
+      ${w.image_url?`<img class="thumb" src="${esc(w.image_url)}" alt="" loading="lazy">`:''}
+      <div class="phrase">${highlight(w.phrase||'—', w.text)} ${w.phrase?spk(w.phrase):''}</div>
+    </div>
+    <div class="progress"><i style="width:${pct}%"></i></div>
+    <div class="actions">
+      <button class="btn sm" data-act="review">Повторить</button>
+      <button class="btn ghost sm" data-act="regen">${regenLabel}</button>
+      <div class="more">
+        <button class="btn ghost sm more-btn" data-act="more" aria-expanded="false"
+                aria-label="Ещё действия">⋯</button>
+        <div class="more-menu hidden">
+          <button data-act="learned">${w.is_learned?'Вернуть в учёбу':'Отметить выученным'}</button>
+          <button data-act="reset" ${fresh?'disabled':''}>Сбросить прогресс</button>
+          <button data-act="del" class="danger">Удалить</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Список слов: поиск, фильтр, страницы ----------
+   Раньше словарь грузился целиком (?limit=1000) и рисовался одним куском —
+   при сотне слов это пятьсот кнопок на странице и заметная пауза на каждом
+   действии. Параметры skip/limit/search/is_learned у GET /words были с самого
+   начала, просто клиент ими не пользовался. */
+const dict = {page:0, size:20, search:"", learned:"", total:0, pages:0};
+
+export async function loadWords(){
+  const params = new URLSearchParams({
+    skip: dict.page * dict.size,
+    limit: dict.size,
+  });
+  if(dict.search) params.set("search", dict.search);
+  if(dict.learned) params.set("is_learned", dict.learned);
+
+  try{
+    const data = await api(`/words?${params.toString()}`);
+    dict.total = data.total;
+    dict.pages = data.pages;
+    // Слова могли закончиться на текущей странице (удаление, фильтр) —
+    // отступаем назад, иначе человек видит пустой экран вместо списка.
+    if(!data.items.length && dict.page>0){
+      dict.page = Math.max(0, dict.pages-1);
+      return loadWords();
+    }
+    renderList(data.items);
+    renderPages();
+  }catch(e){ toast(e.message); }
+}
+
+function renderList(items){
+  const box=$("#list");
+  if(!items.length){
+    const filtered = dict.search || dict.learned;
+    box.innerHTML = filtered
+      ? '<div class="empty">Ничего не нашлось. Измените поиск или фильтр.</div>'
+      : '<div class="empty">Пока нет слов. Добавьте первое сверху ☝️</div>';
+    return;
+  }
+  box.innerHTML = items.map(wordCardHtml).join("");
+}
+
+function renderPages(){
+  const box=$("#dictPages");
+  if(dict.pages<=1){ box.classList.add("hidden"); box.innerHTML=""; return; }
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <button class="btn ghost sm" data-dpage="prev" ${dict.page===0?"disabled":""}>← Назад</button>
+    <span>стр. ${dict.page+1} из ${dict.pages} · всего ${dict.total}</span>
+    <button class="btn ghost sm" data-dpage="next" ${dict.page>=dict.pages-1?"disabled":""}>Вперёд →</button>`;
+}
+
+$("#dictPages").onclick = (e)=>{
+  const btn=e.target.closest("button[data-dpage]"); if(!btn) return;
+  dict.page += btn.dataset.dpage==="next" ? 1 : -1;
+  loadWords();
+};
+
+let searchTimer=null;
+$("#dictSearch").addEventListener("input",(e)=>{
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{
+    dict.search=e.target.value.trim(); dict.page=0; loadWords();
+  }, 300);
+});
+$("#dictFilter").onchange = (e)=>{
+  dict.learned=e.target.value; dict.page=0; loadWords();
+};
+
+// Закрывает открытое меню карточки (клик мимо, Esc, повторный клик).
+function closeMenus(except){
+  document.querySelectorAll(".more-menu:not(.hidden)").forEach(m=>{
+    if(m===except) return;
+    m.classList.add("hidden");
+    const btn=m.parentElement.querySelector(".more-btn");
+    if(btn) btn.setAttribute("aria-expanded","false");
+  });
+}
+document.addEventListener("click",(e)=>{ if(!e.target.closest(".more")) closeMenus(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeMenus(); });
 
 /* Делегирование кликов по карточкам */
 $("#list").onclick = async (e)=>{
   const btn=e.target.closest("button[data-act]"); if(!btn) return;
-  const id=e.target.closest(".word").dataset.id;
+  const cardEl=e.target.closest(".word");
+  const id=cardEl.dataset.id;
   const act=btn.dataset.act;
+
+  if(act==="more"){
+    const menu=btn.parentElement.querySelector(".more-menu");
+    const willOpen=menu.classList.contains("hidden");
+    closeMenus(menu);
+    menu.classList.toggle("hidden", !willOpen);
+    btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    return;
+  }
+  closeMenus();
+
+  // Необратимые действия подтверждаем. Раньше «Удалить» и «Сбросить»
+  // срабатывали с первого клика, без отмены и без возможности вернуть прогресс.
+  const wordText=cardEl.querySelector(".en").textContent;
+  if(act==="del" && !confirm(`Удалить «${wordText}» вместе с прогрессом?`)) return;
+  if(act==="reset" && !confirm(`Сбросить прогресс по слову «${wordText}»?`)) return;
+
   try{
-    if(act==="review"){ await api(`/words/${id}/review`,{method:"PATCH"}); toast("Повторили ✓"); }
-    else if(act==="regen"){ await api(`/words/${id}/regenerate-phrase`,{method:"PATCH"}); toast("Новая фраза"); }
-    // (402 по регенерации ловим ниже в catch — предлагаем Premium)
-    else if(act==="learned"){
-      const w=btn.closest(".word"); const isLearned=w.classList.contains("learned");
-      await api(`/words/${id}/learned`,{method:"PATCH",body:{is_learned:!isLearned}});
+    if(act==="review"){
+      updateCard(cardEl, await api(`/words/${id}/review`,{method:"PATCH"}));
+      toast("Повторили ✓");
     }
-    else if(act==="reset"){ await api(`/words/${id}/reset`,{method:"PATCH"}); toast("Прогресс сброшен"); }
-    else if(act==="del"){ await api(`/words/${id}`,{method:"DELETE"}); toast("Удалено"); }
-    await refresh();
+    else if(act==="regen"){
+      updateCard(cardEl, await api(`/words/${id}/regenerate-phrase`,{method:"PATCH"}));
+      toast("Новая фраза");
+    }
+    else if(act==="learned"){
+      const isLearned=cardEl.classList.contains("learned");
+      updateCard(cardEl, await api(`/words/${id}/learned`,{method:"PATCH",body:{is_learned:!isLearned}}));
+    }
+    else if(act==="reset"){
+      updateCard(cardEl, await api(`/words/${id}/reset`,{method:"PATCH"}));
+      toast("Прогресс сброшен");
+    }
+    else if(act==="del"){
+      await api(`/words/${id}`,{method:"DELETE"});
+      toast("Удалено");
+      // Перезагружаем страницу списка целиком: изменилось общее число слов,
+      // а с ним нумерация страниц и состав текущей.
+      await Promise.all([loadWords(), refreshStats()]);
+      return;
+    }
+    await refreshStats();
   }catch(err){
     toast(err.message);
-    if(err.status===402) openPremium(); // лимит генераций фразы — предлагаем Premium
   }
 };
+
+// Перерисовывает ОДНУ карточку по ответу сервера. Раньше каждое такое действие
+// звало refresh(): три запроса и полная пересборка списка до тысячи карточек,
+// с потерей позиции прокрутки.
+function updateCard(cardEl, word){
+  const holder=document.createElement("div");
+  holder.innerHTML=wordCardHtml(word);
+  cardEl.replaceWith(holder.firstElementChild);
+}
 
 /* Предпросмотр фразы при вводе слова или перевода */
 let previewTimer=null;
@@ -88,15 +214,15 @@ $("#wTrans").addEventListener("input", schedulePreview);
 
 $("#addBtn").onclick = async ()=>{
   const text=$("#wText").value.trim(), translation=$("#wTrans").value.trim();
-  const msg=$("#addMsg"); msg.textContent="";
-  if(!text||!translation){ msg.textContent="Введите слово и перевод."; return; }
+  const msg=$("#addMsg"); msg.className="msg"; msg.textContent="";
+  if(!text||!translation){ msg.className="msg err"; msg.textContent="Введите слово и перевод."; return; }
   try{
     await api("/words",{method:"POST",body:{text,translation}});
     $("#wText").value=""; $("#wTrans").value=""; $("#previewBox").classList.add("hidden");
     await refresh(); toast("Слово добавлено");
   }catch(e){
+    msg.className="msg err";
     msg.textContent=e.message;
-    if(e.status===402) openPremium(); // лимит бесплатного тарифа — предлагаем Premium
   }
 };
 [$("#wText"),$("#wTrans")].forEach(i=>i.addEventListener("keydown",e=>{ if(e.key==="Enter") $("#addBtn").click(); }));
@@ -148,7 +274,7 @@ async function initCatalog(){
 async function loadCategories(){
   const cats = await api(`/catalog/categories?level=${encodeURIComponent(catalog.level)}`);
   $("#catCategory").innerHTML =
-    `<option value="">Все категории</option>` +
+    `<option value="">Все темы</option>` +
     cats.map(c=>`<option value="${esc(c.slug)}"${c.slug===catalog.category?" selected":""}>`
       + `${esc(c.title)} (${c.words_count})</option>`).join("");
 }
@@ -201,8 +327,8 @@ function renderCatalog(){
     body.innerHTML = resultHtml + `<div class="catalog-state">
       <b>${emptyCatalog ? "Каталог пока пуст" : "Здесь пока ничего нет"}</b>
       ${emptyCatalog
-        ? "Наполните его командой <code>python -m app.seed_catalog</code>."
-        : "Попробуйте другой уровень или категорию."}</div>`;
+        ? "Готовых наборов ещё нет — добавьте слово вручную на соседней вкладке."
+        : "Попробуйте другой уровень или тему."}</div>`;
     bar.classList.add("hidden"); return;
   }
 
@@ -302,11 +428,10 @@ $("#catAdd").onclick = async ()=>{
     catalog.selected.clear();
     if(r.added_count) toast(`Добавлено слов: ${r.added_count}`);
     else if(r.skipped_count) toast("Все выбранные слова уже в словаре");
-    if(r.limit_skipped_count) openPremium();        // упёрлись в дневной лимит
+    if(r.limit_skipped_count) toast("Часть слов не поместилась в дневной лимит — добавим завтра");
     await Promise.all([loadCatalogWords(), refresh()]);  // статусы и словарь без перезагрузки
   }catch(e){
     toast(e.message);
-    if(e.status===402) openPremium();
   }finally{
     catalog.sending = false;
     renderCatalog();

@@ -4,7 +4,7 @@ import pytest
 
 from app import evaluator, models, schemas
 from app.crud.words import (
-    FREE_DAILY_DESCRIBE_LIMIT, SRS_MAX_LEVEL, count_describes_today,
+    DAILY_DESCRIBE_LIMIT, SRS_MAX_LEVEL, count_describes_today,
     create_word, describe_word,
 )
 from tests.conftest import run_async
@@ -249,11 +249,11 @@ def test_daily_limit_blocks_free_user(db_session, test_user, monkeypatch):
 
     monkeypatch.setattr("app.crud.words.evaluate_description", verdict)
 
-    for _ in range(FREE_DAILY_DESCRIBE_LIMIT):
+    for _ in range(DAILY_DESCRIBE_LIMIT):
         status, _, _ = run_async(describe_word(db_session, word.id, test_user.id, "a lighthouse"))
         assert status == "ok"
 
-    assert count_describes_today(db_session, test_user.id) == FREE_DAILY_DESCRIBE_LIMIT
+    assert count_describes_today(db_session, test_user.id) == DAILY_DESCRIBE_LIMIT
     status, _, _ = run_async(describe_word(db_session, word.id, test_user.id, "a lighthouse"))
     assert status == "limit"
 
@@ -266,7 +266,7 @@ def test_premium_has_no_daily_limit(db_session, test_user, monkeypatch):
                 "grammar_ru": [], "better_en": "", "offline": False}
 
     monkeypatch.setattr("app.crud.words.evaluate_description", verdict)
-    for _ in range(FREE_DAILY_DESCRIBE_LIMIT + 3):
+    for _ in range(DAILY_DESCRIBE_LIMIT + 3):
         status, _, _ = run_async(describe_word(
             db_session, word.id, test_user.id, "a lighthouse", is_premium=True
         ))
@@ -296,7 +296,7 @@ def test_describe_endpoint_returns_verdict(client, db_session, test_user, monkey
 
     monkeypatch.setattr("app.crud.words.evaluate_description", verdict)
 
-    login = client.post("/api/v1/auth/login",
+    login = client.post("/api/v1/auth/token",
                         data={"username": test_user.email, "password": "secret"})
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
@@ -308,14 +308,14 @@ def test_describe_endpoint_returns_verdict(client, db_session, test_user, monkey
     assert data["verdict"]["grade"] == 3
     assert data["verdict"]["correct"] is True
     assert data["word"]["srs_level"] == 1
-    assert data["describes_left"] == FREE_DAILY_DESCRIBE_LIMIT - 1
+    assert data["describes_left"] == DAILY_DESCRIBE_LIMIT - 1
     # Эталон сцены не должен утекать клиенту даже здесь.
     assert "scene_prompt" not in data["word"]
 
 
 def test_describe_endpoint_rejects_empty_text(client, db_session, test_user):
     word = _word_with_scene(db_session, test_user)
-    login = client.post("/api/v1/auth/login",
+    login = client.post("/api/v1/auth/token",
                         data={"username": test_user.email, "password": "secret"})
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 

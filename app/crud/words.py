@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -53,23 +54,49 @@ def find_duplicate(db: Session, owner_id: int, text: str, translation: str):
             return candidate
     return None
 
-# Сколько слов в сутки можно добавить на бесплатном тарифе. Premium — без лимита.
-FREE_DAILY_WORD_LIMIT = 10
+# --- Лимиты ---
+# Это защита от злоупотреблений, а не тариф. Каждое добавленное слово и каждая
+# проверка описания — вызов внешнего API за деньги, и открытая ручка без потолка
+# выносится одним скриптом. Пороги подобраны так, чтобы обычный человек их не
+# замечал: 50 слов в день — это уже больше, чем реально можно выучить.
+#
+# Раньше здесь стояли 10/5/20, и они работали как пейволл: упереться в них
+# получалось на первом же занятии, после чего открывалась форма оплаты.
+def _int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, "") or default)
+    except ValueError:
+        return default
+    return value if value > 0 else default
 
-# Сколько раз можно перегенерировать фразу для ОДНОГО слова на бесплатном тарифе.
-# Дальше кнопка «другая фраза» становится Premium-функцией. Premium — без лимита.
-FREE_REGEN_LIMIT = 5
 
-# Сколько описаний картинки в сутки проверяет ИИ на бесплатном тарифе.
-# Режим доступен всем — иначе главную механику никто не увидит и не оценит, —
-# но каждая проверка это вызов LLM, поэтому расход ограничен. Premium — без лимита.
-FREE_DAILY_DESCRIBE_LIMIT = 20
+# Сколько слов в сутки можно добавить. Premium — без лимита.
+DAILY_WORD_LIMIT = _int_env("DAILY_WORD_LIMIT", 50)
+
+# Сколько раз можно перегенерировать фразу для ОДНОГО слова.
+REGEN_LIMIT = _int_env("REGEN_LIMIT", 10)
+
+# Сколько описаний картинки в сутки проверяет ИИ. Единственный режим, который
+# ходит в LLM на каждый ответ, поэтому потолок здесь нужен в первую очередь.
+DAILY_DESCRIBE_LIMIT = _int_env("DAILY_DESCRIBE_LIMIT", 50)
 
 # --- SRS (интервальные повторы, система Лейтнера) ---
 SRS_MAX_LEVEL = 5
 # Дней до следующего повтора после достижения уровня (индекс = уровень).
 # Уровень 0 (новое слово или ошибка) — повтор сразу.
 SRS_INTERVALS_DAYS = [0, 1, 3, 7, 14, 30]
+
+
+# Условие «слово пора повторить»: невыученное, срок повтора наступил или не
+# задан. Живёт отдельной функцией, потому что по нему считается и число на
+# дашборде (get_words_stats), и состав учебной сессии (crud/study.py). Пока
+# правило было записано дважды, эти две цифры могли разъехаться.
+def due_filter(now: datetime = None):
+    now = now or datetime.utcnow()
+    return (
+        models.Word.is_learned == False,  # noqa: E712 — SQLAlchemy требует ==
+        (models.Word.due_at == None) | (models.Word.due_at <= now),  # noqa: E711
+    )
 
 
 # Пересчитывает SRS слова по результату повтора: верно → уровень выше и интервал
@@ -261,7 +288,7 @@ async def regenerate_phrase(db: Session, word_id: int, owner_id: int,
     if word is None:
         return "not_found", None
 
-    if not is_premium and (word.regen_count or 0) >= FREE_REGEN_LIMIT:
+    if not is_premium and (word.regen_count or 0) >= REGEN_LIMIT:
         return "limit", word
 
     word.phrase, word.phrase_ru, word.scene_prompt = await _fresh_phrase(
@@ -407,7 +434,7 @@ async def describe_word(db: Session, word_id: int, owner_id: int, answer: str,
     if not word.scene_prompt:
         return "no_scene", word, None
 
-    if not is_premium and count_describes_today(db, owner_id) >= FREE_DAILY_DESCRIBE_LIMIT:
+    if not is_premium and count_describes_today(db, owner_id) >= DAILY_DESCRIBE_LIMIT:
         return "limit", word, None
 
     verdict = await evaluate_description(
@@ -480,7 +507,7 @@ def get_random_unlearned_word(db: Session, owner_id: int):
 
 # Статистика по словам пользователя.
 # Возвращает словарь — его FastAPI отдаст как JSON напрямую.
-def get_words_stats(db: Session, owner_id: int):
+def get_words_stats(db: Session, owner_id: int, is_premium: bool = False):
     total = db.query(models.Word).filter(
         models.Word.owner_id == owner_id
     ).count()
@@ -490,17 +517,24 @@ def get_words_stats(db: Session, owner_id: int):
         models.Word.is_learned == True
     ).count()
 
-    # Слова «к повтору»: невыученные, у которых срок повтора наступил (или не задан).
-    now = datetime.utcnow()
+    # Слова «к повтору» — по тому же правилу, что собирает учебную сессию.
     due = db.query(models.Word).filter(
         models.Word.owner_id == owner_id,
-        models.Word.is_learned == False,
-        (models.Word.due_at == None) | (models.Word.due_at <= now)
+        *due_filter()
     ).count()
 
     return {
         "total": total,
         "learned": learned,
         "remaining": total - learned,
-        "due": due
+        "due": due,
+        # Правила, по которым клиент рисует прогресс и остатки. Отдаём их вместе
+        # со статистикой, чтобы фронтенду не приходилось хранить копии
+        # серверных констант: раньше SRS_MAX_LEVEL и REGEN_LIMIT были вручную
+        # продублированы в dictionary.js и молча разъехались бы при изменении.
+        "srs_max_level": SRS_MAX_LEVEL,
+        "regen_limit": -1 if is_premium else REGEN_LIMIT,
+        "words_left_today": -1 if is_premium else max(
+            0, DAILY_WORD_LIMIT - count_words_created_today(db, owner_id)
+        ),
     }

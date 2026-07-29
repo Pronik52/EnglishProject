@@ -6,27 +6,44 @@
    их кода $ и api уже существуют. */
 
 const API = "/api/v1";
+const CSRF_COOKIE = "csrf_token";
 
-// Токен читает api(), а меняет форма входа. Импортированную переменную
-// присвоить из другого модуля нельзя, поэтому запись идёт через setToken.
-export let token = localStorage.getItem("token") || null;
-export function setToken(value){ token = value; }
+// Удаляем JWT, оставшийся от прежней localStorage-схемы. Новый access token
+// доступен только серверу через HttpOnly cookie.
+try { localStorage.removeItem("token"); } catch (_) {}
 
 export const $ = s => document.querySelector(s);
 export const toast = (t) => { const el=$("#toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),1800); };
 
+function getCookie(name){
+  const prefix = name + "=";
+  return document.cookie.split(";").map(v=>v.trim()).find(v=>v.startsWith(prefix))?.slice(prefix.length) || null;
+}
+
+function isUnsafeMethod(method){
+  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+}
+
 export async function api(path, {method="GET", body=null, form=false, auth=false}={}){
   const headers = {};
-  if(token) headers["Authorization"] = "Bearer "+token;
+  if(isUnsafeMethod(method)){
+    const csrfToken = getCookie(CSRF_COOKIE);
+    if(csrfToken) headers["X-CSRF-Token"] = csrfToken;
+  }
   let payload = body;
   if(form){ headers["Content-Type"]="application/x-www-form-urlencoded"; payload=new URLSearchParams(body).toString(); }
   else if(body){ headers["Content-Type"]="application/json"; payload=JSON.stringify(body); }
-  const res = await fetch(API+path, {method, headers, body:payload});
+  const res = await fetch(API+path, {
+    method,
+    headers,
+    body:payload,
+    credentials:"same-origin"
+  });
   const data = res.status===204 ? null : await res.json().catch(()=>null);
   if(!res.ok){
     // 401 на защищённом запросе = сессия истекла → выходим.
     // На запросах входа/регистрации (auth) 401 = неверные данные, показываем причину.
-    if(res.status===401 && !auth){ logout(); const e=new Error("Нужно войти заново."); e.status=401; throw e; }
+    if(res.status===401 && !auth){ showLoggedOut(); const e=new Error("Нужно войти заново."); e.status=401; throw e; }
     const m = data?.error?.message || data?.detail || "Что-то пошло не так, попробуйте ещё раз.";
     const e = new Error(typeof m==="string"?m:JSON.stringify(m));
     e.status = res.status;
@@ -35,19 +52,27 @@ export async function api(path, {method="GET", body=null, form=false, auth=false
   return data;
 }
 
-// Сброс сессии лежит рядом с токеном, а не в auth.js: его вызывает api() при
-// 401, и держать его здесь дешевле, чем заводить цикл импортов core ↔ auth
-// ради одной функции. Форма входа только вешает его на кнопку «Выйти».
-export function logout(){
-  token=null; localStorage.removeItem("token");
+// Отделяем UI от server-side logout: при 401 cookie уже просрочена или невалидна,
+// поэтому повторный POST /logout не нужен.
+export function showLoggedOut(){
   $("#appView").classList.add("hidden");
   $("#studyView").classList.add("hidden");
+  $("#onboardView").classList.add("hidden");
   $("#authView").classList.remove("hidden");
   $("#logoutBtn").classList.add("hidden");
   $("#levelBox").classList.add("hidden");
   $("#speakBox").classList.add("hidden");
-  $("#planPill").classList.add("hidden");
   $("#userLabel").classList.add("hidden");
+}
+
+export async function logout(){
+  try{
+    await api("/auth/logout", {method:"POST", auth:true});
+  }catch(e){
+    // Даже при сетевой ошибке пользователь должен вернуться на экран входа.
+  }finally{
+    showLoggedOut();
+  }
 }
 
 /* ---------- Общие утилиты ---------- */

@@ -1,24 +1,35 @@
-/* Режим учёбы: описание картинки (главный), викторина с выбором и ввод слова. */
+/* Экран учёбы. Состав сессии и режим каждой карточки приходят с сервера
+   (GET /study/session): отбор по срокам повторов, лестница сложности и
+   варианты ответа считаются в app/crud/study.py. Здесь остаётся только
+   отрисовка и отправка ответов — так же будет устроен и будущий iOS-клиент. */
 
-import { $, api, toast, esc, highlight, spk, speech, dueTime } from "./core.js";
+import { $, api, toast, esc, highlight, spk, speech } from "./core.js";
 import { refresh } from "./app.js";
 
-/* ---------- Режим учёбы: викторина с выбором из 4 слов ---------- */
-let study = {cards:[], i:0, options:[], answered:false, chosen:null, correct:false};
+/* Карточка сессии — {word, mode, options}; study.i указывает на текущую. */
+let study = {cards:[], i:0, answered:false, chosen:null, correct:false, ahead:false, dueTotal:0};
 
-// Режим тренировки: описание картинки (по умолчанию), выбор варианта или ввод.
-$("#studyMode").value = localStorage.getItem("studyMode") || "describe";
+// Селектор режима — необязательный override. По умолчанию «Авто»: режим
+// назначает сервер по уровню SRS слова, и это главный сценарий.
+
+// До появления авто-режима значением по умолчанию был describe, и он лежит в
+// localStorage у каждого, кто открывал приложение раньше. Это ровно тот барьер,
+// который мы убираем, поэтому старое умолчание гасим один раз — иначе прежние
+// пользователи так и остались бы на самом сложном режиме.
+if(localStorage.getItem("studyModeAuto")!=="1"){
+  if(localStorage.getItem("studyMode")==="describe") localStorage.removeItem("studyMode");
+  localStorage.setItem("studyModeAuto","1");
+}
+$("#studyMode").value = localStorage.getItem("studyMode") || "auto";
 $("#studyMode").onchange = (e)=>{
   localStorage.setItem("studyMode", e.target.value);
   // Переключаем текущую карточку на лету, если ещё не ответили.
   if(!$("#studyView").classList.contains("hidden") && study.i<study.cards.length && !study.answered) renderStudy();
 };
 
-// Запасные слова-отвлекатели, если в словаре пока мало слов.
-const FALLBACK_WORDS=["time","people","water","music","light","money","house","garden",
-  "market","letter","summer","travel","coffee","window","picture","school","animal","river"];
-
-function shuffle(a){ for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
+// Текущая карточка и её слово.
+function card(){ return study.cards[study.i]; }
+function word(){ const c=card(); return c ? c.word : null; }
 
 // Заменяет изучаемое слово во фразе на пропуск (••• с подчёркиванием).
 function blankPhrase(phrase, word){
@@ -28,29 +39,15 @@ function blankPhrase(phrase, word){
   return p.replace(re,'<span class="blank">•••</span>');
 }
 
-// Собирает 4 варианта: правильное слово + 3 отвлекателя из других слов словаря.
-function buildOptions(cards, i){
-  const correct=cards[i].text;
-  const seen=new Set([correct.toLowerCase()]);
-  const pool=[];
-  for(const c of cards){ const t=c.text; if(!seen.has(t.toLowerCase())){ pool.push(t); seen.add(t.toLowerCase()); } }
-  shuffle(pool);
-  const extra=shuffle(FALLBACK_WORDS.filter(f=>!seen.has(f)));
-  const distractors=[...pool, ...extra].slice(0,3);
-  return shuffle([correct, ...distractors]);
-}
-
-async function startStudy(){
-  let words;
-  try{ words=(await api("/words?limit=1000")).items; }
+// Загружает сессию с сервера. ahead=true — занятие сверх плана, когда
+// на сегодня всё повторено.
+async function startStudy(ahead=false){
+  let session;
+  try{ session=await api("/study/session"+(ahead?"?ahead=true":"")); }
   catch(e){ toast(e.message); return; }
-  if(!words.length){ toast("Сначала добавьте слова ☝️"); return; }
-  // SRS-порядок: выученные в конец, остальные — по «просроченности» (раньше due_at → раньше).
-  words.sort((a,b)=>{
-    if(a.is_learned!==b.is_learned) return a.is_learned?1:-1;
-    return dueTime(a.due_at) - dueTime(b.due_at);
-  });
-  study={cards:words, i:0, options:[], answered:false, chosen:null, correct:false};
+
+  study={cards:session.cards, i:0, answered:false, chosen:null, correct:false,
+         ahead:!!session.ahead, dueTotal:session.due_total};
   $("#appView").classList.add("hidden");
   $("#studyView").classList.remove("hidden");
   goToCard(0);
@@ -61,22 +58,29 @@ function exitStudy(){
   $("#appView").classList.remove("hidden");
   refresh();
 }
-// Экран «Готово!» зовёт выход инлайновым onclick из шаблона ниже, а функции
-// модуля в window не попадают — публикуем её адресно.
-window.exitStudy = exitStudy;
 
 function goToCard(index){
   study.i=index; study.answered=false; study.chosen=null; study.correct=false;
   // Состояние режима описания живёт на одну карточку и обнуляется вместе с ней.
   study.verdict=null; study.draft=""; study.hintShown=false; study.sending=false;
-  if(index<study.cards.length) study.options=buildOptions(study.cards, index);
   renderStudy();
 }
 
-// Текущий режим тренировки: describe (главный) | choice | type.
+// Режим текущей карточки: обычно тот, что назначил сервер по уровню SRS.
+// Селектор в шапке может его перебить — это осознанный выбор пользователя,
+// поэтому уважаем его, кроме случая, когда выбранный режим нечем показать.
 function currentMode(){
+  const c=card();
+  if(!c) return "type";
   const sel=$("#studyMode");
-  return sel ? sel.value : "describe";
+  const override=sel ? sel.value : "auto";
+  if(override && override!=="auto"){
+    // Выбор без вариантов невозможен: их считает сервер, и если он их не
+    // прислал (пустой каталог, почти пустой словарь) — собрать здесь не из чего.
+    if(override==="choice" && !(c.options && c.options.length)) return c.mode;
+    return override;
+  }
+  return c.mode;
 }
 
 // Готова ли картинка к слову. Пока она рисуется, слово тоже считаем годным
@@ -86,19 +90,13 @@ function hasScene(w){
 }
 
 function renderStudy(){
-  const {cards,i,answered,chosen,correct,options}=study;
+  const {cards,i,answered,chosen,correct}=study;
   const body=$("#studyBody");
-  if(i>=cards.length){
-    $("#studyCount").textContent=cards.length+" / "+cards.length;
-    $("#studyProgress").style.width="100%";
-    body.innerHTML=`<div class="study-done"><div class="big">🎉</div>
-      <h2>Готово!</h2><p class="muted">Вы прошли все фразы.</p>
-      <button class="btn" onclick="exitStudy()">Вернуться к словам</button></div>`;
-    return;
-  }
+  if(i>=cards.length){ renderSessionEnd(); return; }
   $("#studyCount").textContent=(i+1)+" / "+cards.length;
   $("#studyProgress").style.width=(i/cards.length*100)+"%";
-  const w=cards[i];
+  const w=word();
+  const options=card().options||[];
 
   // Главный режим — описание картинки. Карточка сама разбирается со случаем
   // «картинки ещё нет»: молча откатываться на викторину нельзя — пользователь
@@ -161,6 +159,39 @@ function renderStudy(){
   if(w.image_status==="pending") pollSceneImage(w);
 }
 
+// Конец сессии. Состояния важно не путать: пустая сессия — это не ошибка и не
+// «нет слов», а штатный результат интервальных повторов, и говорить о нём надо
+// прямо, иначе человек решит, что приложение сломалось.
+function renderSessionEnd(){
+  const {cards, ahead, dueTotal}=study;
+  $("#studyCount").textContent=cards.length+" / "+cards.length;
+  $("#studyProgress").style.width="100%";
+
+  let title, note, extra="";
+  if(!cards.length && !ahead){
+    title="На сегодня всё";
+    note="Слова вернутся в практику, когда подойдёт их срок. Возвращаться к слову раньше времени бесполезно — на этом и держится интервальное запоминание.";
+    extra=`<button class="btn ghost" data-s="ahead">Позаниматься сверх плана</button>`;
+  }else if(!cards.length){
+    title="Словарь пройден";
+    note="Все слова закреплены. Добавьте новые — из каталога или свои.";
+  }else{
+    const left=dueTotal-cards.length;
+    title="Готово!";
+    note = left>0
+      ? `Прошли ${cards.length}. На сегодня ждут ещё ${left} — можно продолжить.`
+      : "Вы прошли всё, что было запланировано на сегодня.";
+    if(left>0) extra=`<button class="btn ghost" data-s="more">Продолжить</button>`;
+  }
+
+  $("#studyBody").innerHTML=`<div class="study-done"><div class="big"></div>
+    <h2>${esc(title)}</h2><p class="muted">${esc(note)}</p>
+    <div class="study-actions">
+      <button class="btn" data-s="exit">Вернуться к словам</button>
+      ${extra}
+    </div></div>`;
+}
+
 // Блок картинки-сцены. Показываем ДО ответа: изображение — это подсказка,
 // через которую вспоминается фраза, в этом и смысл ассоциативного запоминания.
 // Если картинки нет (не сгенерировалась или выключена) — не занимаем место.
@@ -184,7 +215,7 @@ async function pollSceneImage(w){
         w.image_url = r.image_url;
         w.image_status = r.image_status;
         // Перерисовываем, только если пользователь всё ещё на этой карточке.
-        if(study.cards[study.i] === w) renderStudy();
+        if(word() === w) renderStudy();
         break;
       }
     }catch(e){ break; }            // слово удалили или сеть отвалилась
@@ -287,13 +318,13 @@ async function ensureScene(w){
     const r = await api(`/words/${w.id}/scene`,{method:"POST"});
     w.image_url = r.image_url;
     w.image_status = r.image_status;
-    if(study.cards[study.i]===w) renderStudy();
+    if(word()===w) renderStudy();
     if(r.image_status==="pending") pollSceneImage(w);
   }catch(err){
     // Картинки выключены или у слова нет фразы — режим описания тут не
     // применим. Честно говорим об этом и предлагаем другой режим.
     w.image_status = "failed";
-    if(study.cards[study.i]===w) renderSceneUnavailable(w, err.message);
+    if(word()===w) renderSceneUnavailable(w, err.message);
   }
 }
 
@@ -318,7 +349,7 @@ async function submitDescription(){
   const text=(inp?inp.value:"").trim();
   if(!text){ toast("Опишите, что происходит на картинке"); return; }
 
-  const w=study.cards[study.i];
+  const w=word();
   study.draft=text; study.sending=true;
   renderDescribeCard(w);                 // показываем «Проверяем…»
   try{
@@ -328,7 +359,7 @@ async function submitDescription(){
     study.correct=r.verdict.correct;
     // Перевод фразы, уже загруженный ранее, не теряем.
     if(r.word.phrase_ru==null) r.word.phrase_ru=w.phrase_ru;
-    study.cards[study.i]=r.word;
+    card().word=r.word;
     if(r.describes_left===0) toast("Дневной лимит проверок исчерпан");
   }catch(err){
     toast(err.message);
@@ -343,14 +374,14 @@ async function loadPhraseRu(w){
   try{
     const r=await api(`/words/${w.id}/phrase-translation`);
     w.phrase_ru = r.phrase_ru || ""; // "" — перевод недоступен, но повторно не тянем
-    if(study.cards[study.i]===w && study.answered) renderStudy();
+    if(word()===w && study.answered) renderStudy();
   }catch(e){ w.phrase_ru = ""; }
 }
 
 // Общая обработка ответа (и для выбора, и для ввода).
 async function submitAnswer(chosenText){
   if(study.answered) return;
-  const w=study.cards[study.i];
+  const w=word();
   const correct = chosenText.toLowerCase()===w.text.toLowerCase();
   study.answered=true; study.chosen=chosenText; study.correct=correct;
   renderStudy(); // сразу показываем результат
@@ -359,7 +390,7 @@ async function submitAnswer(chosenText){
     const updated=await api(`/words/${w.id}/answer`,{method:"PATCH",body:{correct}});
     // сервер вернёт слово с сохранённым phrase_ru — подхватываем, не теряя загруженный перевод
     if(updated.phrase_ru==null) updated.phrase_ru=w.phrase_ru;
-    study.cards[study.i]=updated;
+    card().word=updated;
     renderStudy();
   }catch(err){ toast(err.message); }
 }
@@ -376,6 +407,9 @@ $("#studyBody").onclick = (e)=>{
     const inp=$("#describeAns"); if(inp) study.draft=inp.value;
     study.hintShown=true; renderStudy(); return;
   }
+  if(act.dataset.s==="exit"){ exitStudy(); return; }                   // конец сессии
+  if(act.dataset.s==="ahead"){ startStudy(true); return; }             // сверх плана
+  if(act.dataset.s==="more"){ startStudy(); return; }                  // добрать оставшиеся
   if(act.dataset.s==="next" || act.dataset.s==="skip") goToCard(study.i+1);
 };
 // Enter в поле ввода = проверить. В описании Enter переносит строку,
@@ -384,5 +418,9 @@ $("#studyBody").addEventListener("keydown",(e)=>{
   if(e.key==="Enter" && e.target.id==="typeAns"){ e.preventDefault(); const v=e.target.value.trim(); if(v) submitAnswer(v); }
   if(e.key==="Enter" && (e.ctrlKey||e.metaKey) && e.target.id==="describeAns"){ e.preventDefault(); submitDescription(); }
 });
-$("#studyBtn").onclick=startStudy;
+// Обёртка обязательна: onclick передал бы объект события первым аргументом,
+// и сессия всегда открывалась бы в режиме «сверх плана».
+$("#studyBtn").onclick=()=>startStudy();
 $("#studyExit").onclick=exitStudy;
+
+export { startStudy };

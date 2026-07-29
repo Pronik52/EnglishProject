@@ -10,7 +10,7 @@ import pytest
 
 from app import models, schemas
 from app.crud import catalog as crud_catalog
-from app.crud.words import FREE_DAILY_WORD_LIMIT, create_word
+from app.crud.words import DAILY_WORD_LIMIT, create_word
 from tests.conftest import run_async
 
 
@@ -63,7 +63,7 @@ def catalog(db_session):
 
 
 def _headers(client, test_user):
-    login = client.post("/api/v1/auth/login",
+    login = client.post("/api/v1/auth/token",
                         data={"username": test_user.email, "password": "secret"})
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
@@ -358,19 +358,24 @@ def test_user_id_is_taken_from_token_not_from_body(client, db_session, test_user
 
 # --- дневной лимит (общий с ручным добавлением) ---
 
-def test_bulk_add_respects_free_daily_limit(db_session, test_user, catalog):
+def test_bulk_add_respects_daily_limit(db_session, test_user, catalog):
     words = [models.CatalogWord(text=f"w{i}", translation=f"с{i}", level="A1",
-                                frequency_rank=i) for i in range(FREE_DAILY_WORD_LIMIT + 3)]
+                                frequency_rank=i) for i in range(DAILY_WORD_LIMIT + 3)]
     db_session.add_all(words)
     db_session.commit()
 
     result = crud_catalog.add_words_to_dictionary(
         db_session, test_user.id, [w.id for w in words], is_premium=False)
 
-    assert result["added_count"] == FREE_DAILY_WORD_LIMIT
+    assert result["added_count"] == DAILY_WORD_LIMIT
     assert result["limit_skipped_count"] == 3
     assert result["daily_remaining"] == 0
-    assert any("лимит" in e.lower() for e in result["errors"])
+    # Пользователю объясняем, сколько слов не поместилось и что будет дальше.
+    # Рекламы Premium здесь быть не должно: лимит — защита от злоупотреблений,
+    # а не платная стена.
+    message = " ".join(result["errors"])
+    assert "3" in message and "завтра" in message
+    assert "Premium" not in message
 
 
 def test_limit_counter_is_shared_with_manual_adding(db_session, test_user, catalog):
@@ -379,25 +384,25 @@ def test_limit_counter_is_shared_with_manual_adding(db_session, test_user, catal
         db_session, schemas.WordCreate(text="manual", translation="ручное"), test_user.id))
 
     words = [models.CatalogWord(text=f"w{i}", translation=f"с{i}", level="A1")
-             for i in range(FREE_DAILY_WORD_LIMIT)]
+             for i in range(DAILY_WORD_LIMIT)]
     db_session.add_all(words)
     db_session.commit()
 
     result = crud_catalog.add_words_to_dictionary(
         db_session, test_user.id, [w.id for w in words], is_premium=False)
-    assert result["added_count"] == FREE_DAILY_WORD_LIMIT - 1
+    assert result["added_count"] == DAILY_WORD_LIMIT - 1
     assert result["limit_skipped_count"] == 1
 
 
 def test_premium_has_no_daily_limit(db_session, test_user, catalog):
     words = [models.CatalogWord(text=f"w{i}", translation=f"с{i}", level="A1")
-             for i in range(FREE_DAILY_WORD_LIMIT + 5)]
+             for i in range(DAILY_WORD_LIMIT + 5)]
     db_session.add_all(words)
     db_session.commit()
 
     result = crud_catalog.add_words_to_dictionary(
         db_session, test_user.id, [w.id for w in words], is_premium=True)
-    assert result["added_count"] == FREE_DAILY_WORD_LIMIT + 5
+    assert result["added_count"] == DAILY_WORD_LIMIT + 5
     assert result["daily_remaining"] == -1
 
 

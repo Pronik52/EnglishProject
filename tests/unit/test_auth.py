@@ -50,22 +50,34 @@ def test_register_user_duplicate_email(db_session, test_user):
     assert "Email уже зарегистрирован" in data["error"]["message"]
 
 def test_login_user(db_session, test_user):
-    # Сначала создаем пользователя через CRUD (так как у нас нет хеширования пароля в тесте)
-    from app.crud.users import create_user
-    from app.schemas import UserCreate
-
-    user_data = UserCreate(email="login@example.com", password="ValidPass123")
-    user = create_user(db_session, user=user_data)
-
-    # Теперь тестируем логин
+    # Browser login не раскрывает JWT в JSON, а устанавливает две cookie.
     response = client.post(
         "/api/v1/auth/login",
-        data={"username": "login@example.com", "password": "ValidPass123"}
+        data={"username": test_user.email, "password": "secret"}
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
+    assert response.status_code == 204
+    cookie = response.headers["set-cookie"]
+    assert "access_token=" in cookie
+    assert "HttpOnly" in cookie
+    assert "SameSite=lax" in cookie
+    assert "csrf_token=" in cookie
+
+def test_session_cookies_are_visible_on_the_whole_site(db_session, test_user):
+    """csrf_token обязан иметь path=/, иначе SPA на /app его не прочитает.
+
+    С path=/api/v1 браузер продолжает слать cookie на API сам, но не отдаёт её
+    в document.cookie на странице /app — фронтенд не может проставить
+    X-CSRF-Token, и каждый POST отбивается middleware с 403.
+    """
+    response = client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "secret"},
+    )
+    assert response.status_code == 204
+
+    for cookie in response.headers.get_list("set-cookie"):
+        assert "Path=/;" in cookie or cookie.endswith("Path=/")
+
 
 def test_login_user_invalid_password(db_session, test_user):
     # Тестируем логин с неверным паролем
@@ -78,19 +90,64 @@ def test_login_user_invalid_password(db_session, test_user):
     assert "Неверный email или пароль" in data["error"]["message"]
 
 def test_get_current_user(db_session, test_user):
-    # Сначала получаем токен
+    # TestClient хранит cookie после login и отправляет их на /me сам.
     login_response = client.post(
         "/api/v1/auth/login",
         data={"username": test_user.email, "password": "secret"}
     )
-    token = login_response.json()["access_token"]
+    assert login_response.status_code == 204
 
     # Теперь получаем информацию о текущем пользователе
-    response = client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {token}"}
-    )
+    response = client.get("/api/v1/auth/me")
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == test_user.email
     assert data["id"] == test_user.id
+
+
+def test_logout_removes_cookie_session(db_session, test_user):
+    client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "secret"},
+    )
+    csrf = client.cookies.get("csrf_token")
+
+    response = client.post(
+        "/api/v1/auth/logout",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert response.status_code == 204
+
+    response = client.get("/api/v1/auth/me")
+    assert response.status_code == 401
+
+
+def test_cookie_session_requires_csrf_header_for_changes(db_session, test_user):
+    client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "secret"},
+    )
+
+    response = client.patch(
+        "/api/v1/auth/level",
+        json={"level": "B1"},
+    )
+    assert response.status_code == 403
+
+    response = client.patch(
+        "/api/v1/auth/level",
+        json={"level": "B1"},
+        headers={"X-CSRF-Token": client.cookies.get("csrf_token")},
+    )
+    assert response.status_code == 200
+    assert response.json()["level"] == "B1"
+
+
+def test_token_endpoint_returns_bearer_jwt(db_session, test_user):
+    response = client.post(
+        "/api/v1/auth/token",
+        data={"username": test_user.email, "password": "secret"},
+    )
+    assert response.status_code == 200
+    assert response.json()["token_type"] == "bearer"
+    assert "access_token" in response.json()

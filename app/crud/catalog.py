@@ -178,9 +178,9 @@ def add_words_to_dictionary(db: Session, owner_id: int, word_ids: list,
     эта проверка, но и уникальный ключ в базе — от гонки одинаковых запросов
     код в одиночку не защищает.
 
-    Дневной лимит бесплатного тарифа общий с ручным добавлением: если
-    выбранное не помещается в остаток, добавляем сколько влезает, а остальное
-    возвращаем отдельным списком — чтобы интерфейс мог предложить Premium.
+    Дневной лимит общий с ручным добавлением: если выбранное не помещается в
+    остаток, добавляем сколько влезает, а остальное возвращаем отдельным
+    списком — чтобы интерфейс честно сказал, что перенеслось на завтра.
 
     ИИ здесь не вызывается: учебной фразой становится курируемый пример из
     каталога. Картинка дорисуется лениво, при первом показе слова в режиме
@@ -204,7 +204,7 @@ def add_words_to_dictionary(db: Session, owner_id: int, word_ids: list,
     remaining = None
     if not is_premium:
         used = crud_words.count_words_created_today(db, owner_id)
-        remaining = max(0, crud_words.FREE_DAILY_WORD_LIMIT - used)
+        remaining = max(0, crud_words.DAILY_WORD_LIMIT - used)
 
     added_ids, skipped_ids, limit_skipped_ids = [], [], []
 
@@ -235,15 +235,15 @@ def add_words_to_dictionary(db: Session, owner_id: int, word_ids: list,
 
     if limit_skipped_ids:
         errors.append(
-            f"Дневной лимит бесплатного тарифа исчерпан "
-            f"({crud_words.FREE_DAILY_WORD_LIMIT} слов в день), "
-            f"не добавлено: {len(limit_skipped_ids)}. Оформите Premium для безлимита."
+            f"На сегодня добавлено максимум слов "
+            f"({crud_words.DAILY_WORD_LIMIT} в день), "
+            f"не поместилось: {len(limit_skipped_ids)}. Добавим завтра."
         )
 
     daily_remaining = -1
     if not is_premium:
         daily_remaining = max(
-            0, crud_words.FREE_DAILY_WORD_LIMIT - crud_words.count_words_created_today(db, owner_id)
+            0, crud_words.DAILY_WORD_LIMIT - crud_words.count_words_created_today(db, owner_id)
         )
 
     return {

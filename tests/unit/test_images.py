@@ -186,7 +186,7 @@ def test_scene_endpoint_prepares_old_word(client, db_session, test_user, monkeyp
     db_session.add(old)
     db_session.commit()
 
-    login = client.post("/api/v1/auth/login",
+    login = client.post("/api/v1/auth/token",
                         data={"username": test_user.email, "password": "secret"})
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
@@ -202,7 +202,7 @@ def test_scene_endpoint_409_when_images_disabled(client, db_session, test_user, 
     db_session.add(old)
     db_session.commit()
 
-    login = client.post("/api/v1/auth/login",
+    login = client.post("/api/v1/auth/token",
                         data={"username": test_user.email, "password": "secret"})
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
@@ -212,7 +212,7 @@ def test_scene_endpoint_409_when_images_disabled(client, db_session, test_user, 
 
 def test_image_endpoint_returns_status(client, test_user):
     login = client.post(
-        "/api/v1/auth/login",
+        "/api/v1/auth/token",
         data={"username": test_user.email, "password": "secret"}
     )
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
@@ -241,7 +241,7 @@ def test_image_endpoint_hides_other_users_word(client, db_session, test_user):
     db_session.commit()
 
     login = client.post(
-        "/api/v1/auth/login",
+        "/api/v1/auth/token",
         data={"username": test_user.email, "password": "secret"}
     )
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}

@@ -1,0 +1,245 @@
+{
+  "generated_at": "2026-07-24T10:02:23.669386+00:00",
+  "nodes": {
+    "app_crud_users_authenticate_user": {
+      "code_fingerprint": "f5bca244dc5d1db78b896154443dd66cf61e548414a30ef70e1d141496d07033",
+      "label": "authenticate_user()",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/crud/users.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_crud_users_create_user": {
+      "code_fingerprint": "f5bca244dc5d1db78b896154443dd66cf61e548414a30ef70e1d141496d07033",
+      "label": "create_user()",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/crud/users.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_crud_users_get_user_by_email": {
+      "code_fingerprint": "f5bca244dc5d1db78b896154443dd66cf61e548414a30ef70e1d141496d07033",
+      "label": "get_user_by_email()",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/crud/users.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_exceptions_http_exception_handler": {
+      "code_fingerprint": "96d60eae07986f0b88a1019f5ab5a4fe4873058bd466bdc829bd78f12fca964e",
+      "label": "http_exception_handler()",
+      "last": "2026-07-24T09:48:41.029420+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:48:41.029420+00:00",
+          "outcome": "useful",
+          "q": "Как бы ты исправил пункт 1?"
+        }
+      ],
+      "score": 0.999780036,
+      "source_file": "app/exceptions.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_models_user": {
+      "code_fingerprint": "135d1e43f8d3e121426f93562c2a3f4054e139ce796ee31027366edb1193f1bd",
+      "label": "User",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/models.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_routers_auth_login": {
+      "code_fingerprint": "059fae8316c0dcaeaa26b8b8a145f4fb99edaab251f00f3b94d4bbae58359a19",
+      "label": "login()",
+      "last": "2026-07-24T09:57:09.984041+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:57:09.984041+00:00",
+          "outcome": "useful",
+          "q": "распиши подробнее третий пункт исправлений"
+        },
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 1.999134655,
+      "source_file": "app/routers/auth.py",
+      "status": "preferred",
+      "uses": 2
+    },
+    "app_routers_auth_register": {
+      "code_fingerprint": "059fae8316c0dcaeaa26b8b8a145f4fb99edaab251f00f3b94d4bbae58359a19",
+      "label": "register()",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/routers/auth.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "frontend_js_auth_enterapp": {
+      "code_fingerprint": "3cd58bf38107967f03bd88be9de873963a7d390e4ff2f76503b5e97af18e853a",
+      "label": "enterApp()",
+      "last": "2026-07-24T09:57:09.984041+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:57:09.984041+00:00",
+          "outcome": "useful",
+          "q": "распиши подробнее третий пункт исправлений"
+        }
+      ],
+      "score": 0.999916118,
+      "source_file": "frontend/js/auth.js",
+      "status": "tentative",
+      "uses": 1
+    },
+    "frontend_js_core_api": {
+      "code_fingerprint": "58f09f61ab9ec5361eb026a70de47f4e722afdeae35c7befb962b4b3154cd98f",
+      "label": "api()",
+      "last": "2026-07-24T09:57:09.984041+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:57:09.984041+00:00",
+          "outcome": "useful",
+          "q": "распиши подробнее третий пункт исправлений"
+        }
+      ],
+      "score": 0.999916118,
+      "source_file": "frontend/js/core.js",
+      "status": "tentative",
+      "uses": 1
+    },
+    "frontend_js_core_logout": {
+      "code_fingerprint": "58f09f61ab9ec5361eb026a70de47f4e722afdeae35c7befb962b4b3154cd98f",
+      "label": "logout()",
+      "last": "2026-07-24T09:57:09.984041+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:57:09.984041+00:00",
+          "outcome": "useful",
+          "q": "распиши подробнее третий пункт исправлений"
+        }
+      ],
+      "score": 0.999916118,
+      "source_file": "frontend/js/core.js",
+      "status": "tentative",
+      "uses": 1
+    },
+    "httpexception": {
+      "code_fingerprint": "",
+      "label": "HTTPException",
+      "last": "2026-07-24T09:48:41.029420+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:48:41.029420+00:00",
+          "outcome": "useful",
+          "q": "Как бы ты исправил пункт 1?"
+        }
+      ],
+      "score": 0.999780036,
+      "source_file": "",
+      "status": "tentative",
+      "uses": 1
+    },
+    "mnt_c_englishproject_app_auth_decode_access_token": {
+      "code_fingerprint": "cd985e4828b19bfbcb69cbf1589dbdc0c4f0138d635cb0ac19a80bc9c0726c3d",
+      "label": "decode_access_token()",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/auth.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "mnt_c_englishproject_app_auth_get_current_user": {
+      "code_fingerprint": "cd985e4828b19bfbcb69cbf1589dbdc0c4f0138d635cb0ac19a80bc9c0726c3d",
+      "label": "get_current_user()",
+      "last": "2026-07-24T09:57:09.984041+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:57:09.984041+00:00",
+          "outcome": "useful",
+          "q": "распиши подробнее третий пункт исправлений"
+        },
+        {
+          "date": "2026-07-24T09:48:41.029420+00:00",
+          "outcome": "useful",
+          "q": "Как бы ты исправил пункт 1?"
+        },
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 2.998914691,
+      "source_file": "app/auth.py",
+      "status": "preferred",
+      "uses": 3
+    },
+    "mnt_c_englishproject_app_auth_verify_password": {
+      "code_fingerprint": "cd985e4828b19bfbcb69cbf1589dbdc0c4f0138d635cb0ac19a80bc9c0726c3d",
+      "label": "verify_password()",
+      "last": "2026-07-24T09:13:40.271624+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-24T09:13:40.271624+00:00",
+          "outcome": "useful",
+          "q": "Я не требую от тебя больше ничего исправлять, давай изучим мой проект со стороны бэкенд. Начнем с авторизации, почему именно так реализовано и как работает, что бы ты улучшил. Покажи прям куски кода в файлах как выполняется эндпоинт"
+        }
+      ],
+      "score": 0.999218537,
+      "source_file": "app/auth.py",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
+  "version": 1
+}

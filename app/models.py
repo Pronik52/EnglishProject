@@ -84,8 +84,8 @@ class Word(Base):
     due_at = Column(DateTime, nullable=True)
 
     # Сколько раз для слова уже перегенерировали фразу («другая фраза»).
-    # На бесплатном тарифе доступно FREE_REGEN_LIMIT генераций на слово,
-    # дальше — только Premium. Счётчик не сбрасывается.
+    # Потолок — REGEN_LIMIT на слово: каждая генерация это вызов LLM, а удачная
+    # фраза находится за пару попыток. Счётчик не сбрасывается.
     regen_count = Column(Integer, nullable=False, default=0, server_default="0")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

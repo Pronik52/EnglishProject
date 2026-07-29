@@ -49,14 +49,20 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
+class Token(BaseModel):
+    """Стандартный OAuth2 Bearer-ответ для Swagger и API-клиентов."""
+    access_token: str
+    token_type: str
+
+
 # Статус тарифа и дневного лимита.
 class BillingStatus(BaseModel):
     is_premium: bool
     premium_until: Optional[datetime] = None  # до какого момента действует Premium
-    daily_limit: int      # лимит слов в день на бесплатном тарифе
+    daily_limit: int      # предел добавления слов в сутки
     used_today: int       # сколько слов добавлено сегодня
     remaining: int        # сколько ещё можно сегодня (для Premium — не ограничено)
-    regen_limit: int      # бесплатных генераций фразы на слово
+    regen_limit: int      # генераций фразы на слово
 
 
 # Покупка Premium. Платёжные данные фиктивные — оплату не проводим,
@@ -174,6 +180,27 @@ class DescribeResponse(BaseModel):
     describes_left: int  # -1 у Premium: лимита нет
 
 
+# --- Учебная сессия ---
+
+# Карточка сессии: слово плюс режим, которым его сейчас спрашивают.
+# Режим назначает сервер по уровню SRS (см. crud/study.py), а не пользователь:
+# так новичок начинает с узнавания, а описание сцены получает уже на знакомом
+# слове. options приходят всегда, когда их удалось собрать, даже если режим не
+# choice, — иначе ручное переключение режима на карточке было бы нерабочим.
+class StudyCard(BaseModel):
+    word: WordResponse
+    mode: str
+    options: Optional[List[str]] = None
+
+
+# Ответ на запрос сессии. Пустой cards — валидный результат «на сегодня всё»,
+# а не ошибка: это нормальное состояние интервальных повторов.
+class StudySession(BaseModel):
+    cards: List[StudyCard]
+    due_total: int   # сколько слов ждут повторения всего (может быть больше сессии)
+    ahead: bool      # сессия сверх плана: слова взяты независимо от срока
+
+
 # --- Каталог готовых слов ---
 
 # Максимальный размер батча массового добавления. Ограничение защищает и от
@@ -242,7 +269,7 @@ class CatalogAddRequest(BaseModel):
 class CatalogAddResult(BaseModel):
     added_count: int
     skipped_count: int       # уже были в словаре
-    limit_skipped_count: int  # не поместились в дневной лимит бесплатного тарифа
+    limit_skipped_count: int  # не поместились в дневной лимит
     failed_count: int         # не найдены в каталоге или выключены
     added_ids: List[int] = []
     skipped_ids: List[int] = []
