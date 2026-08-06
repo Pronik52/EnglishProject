@@ -1,6 +1,7 @@
 import logging
 import os
 import hmac
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,7 @@ from .routers import (
 from .exceptions import validation_exception_handler, http_exception_handler
 from .database import Base, engine
 from . import auth
+from .crud import words as crud_words
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +30,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="English Learning API")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    recovered = crud_words.recover_pending_images()
+    if recovered:
+        logger.warning("Сброшено зависших генераций картинок: %d", recovered)
+    yield
+
+
+app = FastAPI(title="English Learning API", lifespan=lifespan)
 
 # Создаём таблицы, которых ещё нет — только для SQLite (локальный запуск/демо),
 # чтобы стартовать без миграций. На PostgreSQL схемой управляет Alembic, а

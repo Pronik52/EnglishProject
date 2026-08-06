@@ -3,7 +3,7 @@
 import pytest
 
 from app import image_generator, models, schemas
-from app.crud.words import create_word, generate_word_image, get_word
+from app.crud.words import create_word, generate_word_image, get_word, recover_pending_images
 from tests.conftest import run_async
 
 
@@ -120,6 +120,26 @@ def test_background_generation_saves_url(db_session, test_user, monkeypatch):
     refreshed = get_word(db_session, word.id, test_user.id)
     assert refreshed.image_status == "ready"
     assert refreshed.image_url == "/media/scenes/deadbeef.jpg"
+
+
+def test_restart_marks_interrupted_generation_as_failed(db_session, test_user):
+    word = models.Word(
+        text="map",
+        translation="карта",
+        phrase="He looked at the map carefully.",
+        scene_prompt="a man looking at a map",
+        image_status="pending",
+        owner_id=test_user.id,
+    )
+    db_session.add(word)
+    db_session.commit()
+
+    assert recover_pending_images() == 1
+
+    db_session.expire_all()
+    refreshed = get_word(db_session, word.id, test_user.id)
+    assert refreshed.image_status == "failed"
+    assert refreshed.image_url is None
 
 
 def test_deleted_word_does_not_break_background_task(db_session, test_user, monkeypatch):

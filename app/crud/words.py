@@ -219,6 +219,25 @@ def _initial_image_status(scene: str, image_url: str | None) -> str:
     return "none"
 
 
+def recover_pending_images() -> int:
+    """Помечает незавершённые фоновые генерации после перезапуска как failed.
+
+    FastAPI BackgroundTasks живут только в процессе приложения. Если процесс
+    остановили во время запроса к провайдеру, задача исчезает, а сохранённый в
+    БД статус pending уже некому завершить.
+    """
+    db = SessionLocal()
+    try:
+        recovered = db.query(models.Word).filter(
+            models.Word.image_status == "pending",
+            models.Word.image_url.is_(None),
+        ).update({models.Word.image_status: "failed"}, synchronize_session=False)
+        db.commit()
+        return recovered
+    finally:
+        db.close()
+
+
 # Фоновая дорисовка картинки к слову. Запускается через BackgroundTasks уже
 # ПОСЛЕ того, как ответ ушёл пользователю, поэтому работает со своей сессией:
 # сессия запроса к этому моменту закрыта.
